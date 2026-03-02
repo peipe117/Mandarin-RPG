@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>華語勇者：生詞大戰 RPG / Mandarin Hero RPG</title>
+    <!-- 引入 Tailwind CSS 進行快速且美觀的排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Canvas Confetti 進行過關特效 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- 引入 FontAwesome 作為圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 基礎全域設定 */
+        body {
+            font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+        }
+        
+        /* 自訂動畫效果 */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-3px, 0) rotate(-2deg); }
+            20%, 40%, 60%, 80% { transform: translate(3px, 0) rotate(2deg); }
+        }
+        .shake-animation { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        @keyframes attack {
+            0% { transform: translateX(0) scale(1); }
+            40% { transform: translateX(30px) scale(1.1); filter: brightness(1.2); }
+            100% { transform: translateX(0) scale(1); filter: brightness(1); }
+        }
+        .attack-animation { animation: attack 0.4s ease-out forwards; }
+        
+        /* 勇者待機動畫 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .idle-float { animation: float 3s ease-in-out infinite; }
+        
+        /* 寶物閃爍與環境光 */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.4)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 16px rgba(96, 165, 250, 0.8)); transform: scale(1.02); }
+        }
+        .treasure-shine { animation: pulse-glow 2.5s infinite; }
+
+        /* 浮動文字動畫 (戰鬥訊息) */
+        @keyframes pop-up {
+            0% { transform: translateY(10px) scale(0.8); opacity: 0; }
+            20% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+            80% { transform: translateY(-20px) scale(1); opacity: 1; }
+            100% { transform: translateY(-30px) scale(0.9); opacity: 0; }
+        }
+        .pop-text-anim { animation: pop-up 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* 傷害飄字動畫 */
+        @keyframes damage-float {
+            0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -30px) scale(1.5); opacity: 1; }
+            80% { transform: translate(-50%, -50px) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -70px) scale(0.8); opacity: 0; }
+        }
+        .damage-floater { animation: damage-float 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        /* Combo 動畫 */
+        @keyframes combo-pop {
+            0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.3) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .combo-anim { animation: combo-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* 紅血警告動畫 */
+        @keyframes danger-pulse {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.2)); }
+            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); }
+        }
+        .danger-state { animation: danger-pulse 1s infinite; }
+
+        /* 血條平滑過渡 */
+        .hp-bar-fill { transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* 3D 按鈕點擊效果 */
+        .btn-3d { transition: all 0.15s ease; }
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+            margin-top: 4px;
+        }
+        
+        /* 玻璃擬物背景 */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 自訂卷軸樣式 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 md:p-6 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-950 relative overflow-hidden">
+    
+    <!-- 背景裝飾光暈 -->
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/30 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- 遊戲主容器 (玻璃質感) -->
+    <div id="game-container" class="glass-panel rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] w-full max-w-3xl overflow-hidden hidden flex-col relative z-10">
+        
+        <!-- 頂部資訊列：等級與提示 -->
+        <div class="bg-slate-900/80 p-4 px-6 flex justify-between items-center border-b border-slate-700/50 shadow-md relative">
+            <div class="text-left flex-grow">
+                <h1 class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500 drop-shadow-sm tracking-wide" data-i18n="title">華語勇者傳說</h1>
+                <p id="level-display" class="text-sm md:text-base text-blue-200 mt-1 font-medium tracking-wider" data-i18n="ready">準備戰鬥！</p>
+            </div>
+            
+            <!-- Combo 顯示區塊 (將右邊距 pr-4 加在 span 上，撐開漸層裁切範圍) -->
+            <div id="combo-display" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center hidden">
+                <span class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-red-500 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] italic pr-4">
+                    <span id="combo-count">2</span><span class="text-2xl md:text-3xl ml-1" data-i18n="combo">連擊</span>
+                </span>
+            </div>
+
+            <button onclick="window.showMenu()" class="btn-3d ml-4 px-4 py-2.5 bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white rounded-xl border-b-4 border-slate-800 shadow-lg font-bold text-sm flex items-center flex-shrink-0 ring-1 ring-slate-500 z-10">
+                <i class="fa-solid fa-person-walking-arrow-right mr-2"></i> <span data-i18n="menuBtn">撤退</span>
+            </button>
+        </div>
+
+        <!-- 戰鬥畫面區塊 -->
+        <div class="p-6 md:p-8 relative bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800/50 via-transparent to-transparent">
+            
+            <!-- 動態戰鬥文字回饋 -->
+            <div id="battle-log" class="absolute top-1/4 left-0 right-0 text-center pointer-events-none z-30 opacity-0">
+                <span class="inline-block px-6 py-2 rounded-2xl text-2xl md:text-4xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]" id="battle-log-text"></span>
+            </div>
+
+            <div class="flex justify-between items-end mt-4 mb-2 md:px-8">
+                <!-- 玩家區塊 -->
+                <div class="w-5/12 flex flex-col items-center relative" id="player-wrapper">
+                    <div class="absolute bottom-[20%] w-24 h-4 bg-black/60 rounded-[100%] blur-[4px] z-0"></div>
+                    
+                    <div id="player-sprite" class="mb-4 transition-transform relative z-10">
+                        <div class="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-30 animate-pulse mt-4"></div>
+                        <div class="idle-float relative z-10">
+                            <!-- 精緻化 SVG 勇者 -->
+                            <svg id="hero-svg-container" viewBox="0 0 100 100" class="w-28 h-28 md:w-36 md:h-36 drop-shadow-2xl">
+                                <!-- JS 動態插入 -->
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- 玩家血條與資訊 -->
+                    <div class="w-full max-w-[160px] bg-slate-900 rounded-full h-5 mb-1 border-2 border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] relative overflow-hidden">
+                        <div id="player-hp-bar" class="bg-gradient-to-r from-green-600 to-emerald-400 h-full rounded-full hp-bar-fill relative">
+                            <div class="absolute inset-0 bg-white/20 w-full h-1/2"></div>
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white text-shadow-sm">
+                            <span id="player-hp-text">200</span> / <span id="player-max-hp-text">200</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-600 px-3 py-1 rounded-lg shadow-lg -mt-2 z-20">
+                        <p class="text-xs text-center font-bold text-white whitespace-nowrap">
+                            <span id="in-game-player-name" class="text-blue-300">勇者</span> 
+                            <span class="text-yellow-400 ml-1"><span data-i18n="level">Lv.</span><span id="in-game-level">1</span></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- VS 標誌 -->
+                <div class="w-2/12 flex justify-center items-center pb-12">
+                    <div class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-red-400 to-red-600 italic drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] transform -skew-x-12 pr-1">VS</div>
+                </div>
+
+                <!-- 怪物區塊 -->
+                <div class="w-5/12 flex flex-col items-center relative" id="monster-wrapper">
+                    <div class="absolute bottom-[20%] w-24 h-4 bg-black/60 rounded-[100%] blur-[4px] z-0"></div>
+                    
+                    <div id="monster-sprite" class="mb-4 transition-transform z-10 idle-float relative" style="animation-delay: -1.5s;">
+                        <i class="fa-solid fa-ghost text-[5rem] md:text-[6rem] drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] text-purple-500 relative z-10"></i>
+                    </div>
+                    <!-- 怪物血條與資訊 -->
+                    <div class="w-full max-w-[160px] bg-slate-900 rounded-full h-5 mb-1 border-2 border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] relative overflow-hidden">
+                        <div id="monster-hp-bar" class="bg-gradient-to-r from-red-600 to-rose-500 h-full rounded-full hp-bar-fill flex justify-end relative">
+                            <div class="absolute inset-0 bg-white/20 w-full h-1/2"></div>
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white text-shadow-sm">
+                            <span id="monster-hp-text">100</span> / <span id="monster-max-hp-text">100</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-600 px-3 py-1 rounded-lg shadow-lg -mt-2 z-20">
+                        <p class="text-xs text-center font-bold text-gray-200 whitespace-nowrap" id="monster-name">生詞小鬼</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 題目與選項區塊 -->
+        <div class="bg-slate-800/90 p-4 md:p-6 border-t border-slate-700 shadow-[inset_0_10px_20px_rgba(0,0,0,0.2)] z-20">
+            <div id="question-box" class="bg-gradient-to-b from-slate-700 to-slate-800 p-5 rounded-2xl mb-5 text-center border-2 border-slate-600 shadow-inner relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-50"></div>
+                
+                <h2 id="question-text" class="text-2xl md:text-3xl font-black text-white mb-3 drop-shadow-md leading-relaxed" data-i18n="loading">載入題目中...</h2>
+                
+                <div id="hint-container" class="min-h-[44px] flex justify-center items-center">
+                    <button id="pinyin-btn" class="btn-3d text-gray-200 bg-slate-600 hover:bg-slate-500 px-5 py-2 rounded-full text-sm font-bold border-b-4 border-slate-800 shadow-md" onclick="window.showHintAction()">
+                        <i class="fa-solid fa-lightbulb text-yellow-400 mr-2 animate-pulse"></i><span data-i18n="showHint">點擊顯示提示 (注音/拼音)</span>
+                    </button>
+                    <!-- 提示文字區域 -->
+                    <div id="pinyin-text" class="hidden text-yellow-300 font-bold tracking-widest drop-shadow-lg leading-tight bg-slate-900/50 px-6 py-2 rounded-xl border border-yellow-500/30"></div>
+                </div>
+            </div>
+
+            <!-- 選項按鈕區 -->
+            <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- JS 動態生成 -->
+            </div>
+            
+            <p class="text-center text-slate-400 text-xs mt-4 font-bold tracking-wide" data-i18n="hintWarn">💡 必須答對每一個單字才能擊敗魔王喔！</p>
+        </div>
+
+        <!-- 遊戲結束/過關畫面 Overlay -->
+        <div id="overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm hidden flex-col items-center justify-center z-50 p-6">
+            <div class="bg-gradient-to-b from-slate-800 to-slate-900 p-8 rounded-3xl border-4 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)] text-center w-full max-w-lg transform transition-all scale-100 relative overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="absolute top-[-50px] left-[-50px] w-[100px] h-[100px] bg-yellow-400/20 rounded-full blur-[40px] pointer-events-none"></div>
+                <div class="absolute bottom-[-50px] right-[-50px] w-[100px] h-[100px] bg-blue-400/20 rounded-full blur-[40px] pointer-events-none"></div>
+                
+                <h2 id="overlay-title" class="text-5xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 drop-shadow-lg filter flex-shrink-0">勝利！</h2>
+                <p id="overlay-message" class="text-xl md:text-2xl mb-6 text-white font-bold leading-relaxed flex-shrink-0">你打敗了怪物！</p>
+                
+                <!-- 經驗值與寶物結算區 -->
+                <div id="overlay-rewards" class="bg-slate-900/80 p-5 rounded-2xl border border-slate-600 mb-8 w-full shadow-inner hidden flex-col overflow-hidden flex-shrink">
+                    <p id="exp-gain-text" class="text-xl text-green-400 font-black mb-4 drop-shadow-md flex-shrink-0">獲得 100 EXP!</p>
+                    <div id="treasure-drop-container" class="hidden flex-col items-center w-full bg-slate-800/50 p-4 rounded-xl border border-yellow-500/30 overflow-y-auto flex-1 custom-scrollbar min-h-[100px]">
+                        <p class="text-yellow-400 font-black mb-3 w-full tracking-wider flex-shrink-0" data-i18n="foundTreasure">🎉 寶物獲得 / 升級！</p>
+                        <div id="treasure-icons-wrapper" class="flex flex-wrap justify-center gap-4 w-full">
+                            <!-- JS 動態插入 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center flex-shrink-0">
+                    <button id="overlay-btn" class="btn-3d px-8 py-4 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-black rounded-xl text-xl border-b-4 border-blue-900 shadow-[0_0_15px_rgba(59,130,246,0.5)] min-w-[160px]" data-i18n="continueBtn">
+                        繼續前進
+                    </button>
+                    <button id="overlay-menu-btn" onclick="window.showMenu()" class="btn-3d px-8 py-4 bg-gradient-to-b from-slate-600 to-slate-800 hover:from-slate-500 hover:to-slate-700 text-white font-black rounded-xl text-xl border-b-4 border-slate-950 shadow-lg min-w-[160px]">
+                        <span data-i18n="backMenuBtn">回主選單</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主選單畫面 -->
+    <div id="menu-screen" class="fixed inset-0 z-40 flex flex-col items-center p-4 md:p-8 overflow-hidden bg-transparent">
+        
+        <!-- 頂部工具列 -->
+        <div class="w-full max-w-5xl flex justify-between items-start mb-6">
+            <div class="flex flex-col">
+                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-orange-500 tracking-widest drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] filter" data-i18n="title">華語勇者傳說</h1>
+                <p class="text-blue-200 font-bold tracking-widest mt-1 drop-shadow-md hidden md:block">MANDARIN HERO LEGEND</p>
+            </div>
+            
+            <div class="flex flex-col items-end gap-3">
+                <div class="flex gap-2">
+                    <button onclick="window.openLeaderboard()" class="btn-3d bg-gradient-to-b from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-xl border-b-4 border-orange-800 shadow-lg text-sm font-black flex items-center ring-1 ring-yellow-400 hover:ring-white" title="排行榜 / Leaderboard">
+                        <i class="fa-solid fa-trophy drop-shadow-md"></i>
+                    </button>
+                    <button onclick="window.toggleFullscreen()" class="btn-3d bg-gradient-to-b from-slate-600 to-slate-800 text-white px-4 py-2 rounded-xl border-b-4 border-slate-900 shadow-lg text-sm font-black flex items-center ring-1 ring-slate-500 hover:ring-blue-400" title="全螢幕 / Fullscreen">
+                        <i id="fullscreen-icon" class="fa-solid fa-expand text-blue-300"></i>
+                    </button>
+                    <button onclick="window.toggleLanguage()" class="btn-3d bg-gradient-to-b from-slate-600 to-slate-800 text-white px-4 py-2 rounded-xl border-b-4 border-slate-900 shadow-lg text-sm font-black tracking-wider flex items-center ring-1 ring-slate-500 hover:ring-blue-400">
+                        <i class="fa-solid fa-earth-asia mr-2 text-blue-300"></i> <span class="lang-toggle-text">EN</span>
+                    </button>
+                </div>
+                <button onclick="window.resetSaveData()" class="btn-3d bg-gradient-to-b from-red-800 to-red-950 text-red-200 px-4 py-2 rounded-xl border-b-4 border-red-950 shadow-lg text-xs font-bold ring-1 ring-red-700 hover:ring-red-400 opacity-70 hover:opacity-100" title="刪除進度">
+                    <i class="fa-solid fa-skull mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+        
+        <!-- 玩家存檔狀態面板 -->
+        <div class="glass-panel w-full max-w-5xl p-5 md:p-6 rounded-3xl border-t border-l border-white/10 mb-6 flex flex-col md:flex-row items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 rounded-full blur-[50px] group-hover:bg-blue-400/20 transition-colors duration-700"></div>
+
+            <div class="flex items-center w-full md:w-auto z-10">
+                <div class="relative mr-5 flex-shrink-0">
+                    <div class="absolute inset-0 bg-gradient-to-b from-blue-400 to-indigo-600 rounded-full blur-md opacity-60"></div>
+                    <div id="menu-avatar-container" class="bg-gradient-to-b from-slate-700 to-slate-900 w-20 h-20 rounded-full flex items-center justify-center border-4 border-slate-600 shadow-xl relative z-10 overflow-hidden">
+                        <!-- JS 動態插入 -->
+                    </div>
+                    <div class="absolute -bottom-2 -right-2 bg-gradient-to-b from-yellow-400 to-orange-600 border-2 border-slate-900 text-white text-xs font-black px-2 py-1 rounded-lg shadow-lg z-20 transform rotate-12">
+                        Lv.<span id="menu-level-text">1</span>
+                    </div>
+                </div>
+
+                <div class="flex-grow">
+                    <h2 class="text-2xl md:text-3xl font-black text-white flex items-center mb-1 drop-shadow-md">
+                        <span id="menu-player-name" class="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-cyan-200 truncate max-w-[150px] md:max-w-[200px]">小勇者</span>
+                        <button onclick="window.openNameModal()" class="text-sm text-slate-400 hover:text-yellow-400 ml-3 transition-colors bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center shadow-inner" title="修改姓名"><i class="fa-solid fa-pen"></i></button>
+                    </h2>
+                    
+                    <div class="flex items-center gap-4 text-sm font-bold mt-2">
+                        <p class="text-slate-300 bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-700/50"><i class="fa-solid fa-heart text-red-500 mr-1"></i> <span data-i18n="maxHp">HP:</span> <span id="menu-hp-text" class="text-green-400">200</span></p>
+                        <p class="text-slate-300 bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-700/50 hidden md:block">EXP: <span id="menu-exp-text" class="text-yellow-400">0/100</span></p>
+                    </div>
+                    
+                    <!-- EXP Bar -->
+                    <div class="w-full md:w-64 bg-slate-900 rounded-full h-3 mt-3 border border-slate-700 shadow-inner overflow-hidden relative">
+                        <div id="menu-exp-bar" class="bg-gradient-to-r from-yellow-500 to-orange-400 h-full rounded-full transition-all duration-700 ease-out relative">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-white/30"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 寶物背包 -->
+            <div class="flex flex-col items-center md:items-end mt-6 md:mt-0 w-full md:w-auto z-10 bg-slate-900/40 p-4 rounded-2xl border border-slate-700/50">
+                <p class="text-sm text-yellow-400 mb-3 font-black tracking-widest uppercase drop-shadow-md"><i class="fa-solid fa-crown mr-2"></i><span data-i18n="treasures">收集到的寶物</span></p>
+                <div id="menu-treasures-container" class="flex flex-wrap justify-center md:justify-end gap-3 w-full max-h-28 overflow-y-auto pr-1">
+                    <span class="text-gray-500 text-sm italic" data-i18n="noTreasure">還沒有寶物...多打怪吧！</span>
+                </div>
+            </div>
+        </div>
+
+        <p id="select-prompt-text" class="text-lg text-slate-300 font-bold mb-4 text-center bg-slate-900/60 px-6 py-2 rounded-full border border-slate-700 shadow-lg backdrop-blur-sm transition-colors" data-i18n="selectPrompt">點擊選擇你要複習的關卡（最多可選 4 關）</p>
+        
+        <!-- 關卡選擇區塊 -->
+        <div id="level-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full max-w-6xl px-2 overflow-y-auto mb-6 flex-grow pb-4">
+            <!-- JS 動態生成 -->
+        </div>
+
+        <!-- 開始按鈕區塊 -->
+        <div class="mt-auto w-full max-w-sm">
+            <button id="start-game-btn" onclick="window.startSelected()" class="w-full btn-3d px-8 py-5 bg-gradient-to-b from-slate-600 to-slate-800 text-slate-400 font-black rounded-2xl text-xl md:text-2xl border-b-[6px] border-slate-900 shadow-2xl cursor-not-allowed transition-all" disabled>
+                <span data-i18n="selectMinOne">請至少選擇一關</span>
+            </button>
+        </div>
+
+        <!-- 署名 Footer -->
+        <div class="text-slate-500 text-xs font-bold tracking-widest mt-5 mb-2 drop-shadow-md">
+            Created by Sophia Wong
+        </div>
+    </div>
+
+    <!-- 輸入姓名彈出視窗 -->
+    <div id="name-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex-col items-center justify-center z-[70] p-4">
+        <div class="glass-panel p-8 rounded-3xl border-2 border-blue-500/50 text-center w-full max-w-md shadow-[0_0_50px_rgba(59,130,246,0.2)] relative">
+            <button onclick="window.toggleLanguage()" class="absolute top-4 right-4 btn-3d bg-gradient-to-b from-slate-600 to-slate-800 text-white px-3 py-1.5 rounded-xl border-b-2 border-slate-900 shadow-md text-xs font-black tracking-wider flex items-center ring-1 ring-slate-500 hover:ring-blue-400">
+                <i class="fa-solid fa-earth-asia mr-1 text-blue-300"></i> <span class="lang-toggle-text">EN</span>
+            </button>
+            
+            <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-slate-800">
+                <i class="fa-solid fa-pen-nib text-3xl text-white"></i>
+            </div>
+            <h3 class="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-cyan-300 font-black mb-2 drop-shadow-md" data-i18n="namePromptTitle">勇者，你的名字是？</h3>
+            <p class="text-slate-400 text-sm mb-4 font-bold" data-i18n="namePromptDesc">請輸入你的姓名，讓怪物記住你！</p>
+            
+            <p class="text-slate-300 text-sm mb-2 font-bold" data-i18n="stylePrompt">選擇造型</p>
+            <div class="flex justify-center gap-3 mb-4 w-full">
+                <button id="style-swordsman-btn" onclick="window.selectStyle('swordsman')" class="flex-1 py-3 rounded-xl border-2 font-black transition-all bg-blue-900/50 border-blue-400 text-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.5)]" data-i18n="style1">⚔️ 劍士</button>
+                <button id="style-mage-btn" onclick="window.selectStyle('mage')" class="flex-1 py-3 rounded-xl border-2 font-black transition-all bg-slate-800 border-slate-600 text-slate-400 hover:border-pink-400 hover:text-pink-200" data-i18n="style2">🪄 魔法師</button>
+            </div>
+            
+            <input type="text" id="name-input" class="w-full p-4 mb-2 rounded-xl bg-slate-900 border-2 border-slate-600 text-white font-black text-center text-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner placeholder-slate-600" placeholder="例如：小明" maxlength="10">
+            <p id="name-warning" class="text-red-400 text-sm font-bold mb-6 h-5 opacity-0 transition-opacity" data-i18n="nameWarning">請輸入姓名才能開始喔！</p>
+            
+            <div class="flex justify-center gap-4">
+                <button id="cancel-name-btn" onclick="window.closeNameModal()" class="w-1/2 btn-3d py-3 bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white font-bold rounded-xl border-b-4 border-slate-800" data-i18n="cancel">取消</button>
+                <button onclick="window.savePlayerName()" class="w-1/2 btn-3d py-3 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-black rounded-xl border-b-4 border-blue-900 shadow-[0_0_15px_rgba(59,130,246,0.4)]" data-i18n="confirm">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 寶物詳細資訊彈出視窗 -->
+    <div id="treasure-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex-col items-center justify-center z-[70] p-4">
+        <div class="glass-panel p-8 rounded-3xl border-2 border-yellow-500/50 text-center w-full max-w-sm shadow-[0_0_50px_rgba(234,179,8,0.2)] relative overflow-hidden">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-yellow-500/20 rounded-full blur-[40px] pointer-events-none"></div>
+            <h3 class="text-sm font-black text-yellow-500 tracking-widest uppercase mb-6" data-i18n="treasureInfoTitle">寶物圖鑑</h3>
+            <div id="modal-treasure-icon" class="text-7xl mb-6 mx-auto w-32 h-32 flex items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-slate-600 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5),0_10px_20px_rgba(0,0,0,0.3)] relative"></div>
+            <h4 id="modal-treasure-name" class="text-3xl font-black text-white mb-3 drop-shadow-md">名稱</h4>
+            <div class="bg-slate-900/80 rounded-xl p-4 mb-8 border border-slate-700 shadow-inner">
+                <p id="modal-treasure-desc" class="text-green-400 font-bold text-lg leading-relaxed">說明</p>
+            </div>
+            <button onclick="window.closeTreasureModal()" class="w-full btn-3d py-3 bg-gradient-to-b from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-black rounded-xl border-b-4 border-blue-950 text-lg shadow-lg" data-i18n="close">關閉</button>
+        </div>
+    </div>
+
+    <!-- 排行榜彈出視窗 -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex-col items-center justify-center z-[70] p-4">
+        <div class="glass-panel p-6 md:p-8 rounded-3xl border-2 border-yellow-500/50 text-center w-full max-w-lg shadow-[0_0_50px_rgba(234,179,8,0.2)] relative flex flex-col max-h-[85vh]">
+            <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-slate-800 flex-shrink-0">
+                <i class="fa-solid fa-trophy text-2xl text-white drop-shadow-md"></i>
+            </div>
+            <h3 class="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 font-black mb-4 drop-shadow-md flex-shrink-0" data-i18n="leaderboardTitle">勇者名人堂</h3>
+            
+            <div class="bg-slate-900/80 rounded-xl border border-slate-700 shadow-inner flex-grow overflow-y-auto mb-6 custom-scrollbar">
+                <table class="w-full text-left text-sm md:text-base">
+                    <thead class="bg-slate-800/80 text-slate-300 sticky top-0 z-10 shadow-md">
+                        <tr>
+                            <th class="p-3 text-center w-16" data-i18n="lbRank">排名</th>
+                            <th class="p-3" data-i18n="lbName">勇者</th>
+                            <th class="p-3 text-center w-16" data-i18n="lbLevel">等級</th>
+                            <th class="p-3 text-right pr-4" data-i18n="lbExp">EXP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-list" class="text-white">
+                        <!-- JS 動態插入 -->
+                    </tbody>
+                </table>
+                <div id="leaderboard-loading" class="py-10 text-slate-400 font-bold" data-i18n="loadingData">連線讀取中...</div>
+            </div>
+            
+            <button onclick="window.closeLeaderboard()" class="w-full btn-3d py-3 bg-gradient-to-b from-slate-600 to-slate-800 hover:from-slate-500 hover:to-slate-700 text-white font-black rounded-xl border-b-4 border-slate-900 flex-shrink-0" data-i18n="close">關閉</button>
+        </div>
+    </div>
+
+    <!-- Firebase 腳本整合 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 雙語翻譯字典 (i18n)
+        // ==========================================
+        const i18n = {
+            zh: {
+                title: "華語勇者傳說", ready: "準備戰鬥！", menuBtn: "撤退", hero: "勇者",
+                hintWarn: "💡 必須答對每一個單字才能擊敗魔王喔！", loading: "載入題目中...",
+                showHint: "點擊顯示提示 (注音/拼音)", victory: "勝利！", continueBtn: "繼續前進",
+                backMenuBtn: "回主選單", selectPrompt: "點擊選擇你要複習的關卡（最多可選 4 關）",
+                selectMinOne: "請至少選擇一關", startSingle: "開始挑戰", startMixed: "綜合複習特訓",
+                maxHp: "最大生命值:", treasures: "收集到的寶物", noTreasure: "還沒有寶物...多打怪吧！",
+                namePromptTitle: "勇者，你的名字是？", namePromptDesc: "請輸入你的姓名，讓怪物記住你！",
+                stylePrompt: "選擇造型", style1: "⚔️ 劍士", style2: "🪄 魔法師",
+                namePlaceholder: "例如：小明", nameWarning: "請輸入姓名才能開始喔！",
+                cancel: "取消", confirm: "確定", level: "等級 ",
+                correctMsg: "太棒了！答對了！(+{hp} HP)", wrongMsg: "哎呀！答錯了！(-{dmg} HP)",
+                fallen: "勇者倒下了...", retryDesc: "{name}，生詞還不太熟喔，休息一下重新挑戰吧！",
+                retryBtn: "重新挑戰", ultimateBoss: "綜合大魔王", mixedEncounter: "綜合特訓 | 遭遇 {boss}！",
+                singleEncounter: "{level} | {boss} 出現！", trainingComplete: "特訓完成！",
+                mixedSuccess: "太神啦！勇者 {name} 成功擊敗魔王！", perfectClear: "完美擊破！",
+                singleSuccess: "恭喜 {name} 打敗了 {monster}，生詞全數過關！",
+                expGain: "獲得 {exp} 點經驗值！", levelUp: " 🌟 等級提升！",
+                foundTreasure: "🎉 寶物獲得 / 升級！", close: "關閉", defaultName: "小勇者",
+                selectedCount: "(已選 {n} 關)", treasureInfoTitle: "傳說寶物",
+                treasureEffect: "目前加成效果：\n{desc}", deleteConfirm: "確定要刪除所有遊戲進度、等級和寶物嗎？",
+                combo: "連擊", critText: "暴擊！", leaderboardTitle: "勇者名人堂", lbRank: "排名",
+                lbName: "勇者", lbLevel: "等級", lbExp: "經驗值", loadingData: "連線讀取中...",
+                emptyLeaderboard: "尚無紀錄，成為第一位上榜的勇者吧！",
+                permissionError: "讀取失敗！請至 Firebase Console 將 Firestore 規則設為 allow read, write: if true;",
+                cleared: "已過關", maxSelectWarn: "最多只能選擇 4 關進行綜合特訓喔！", bossAppear: "⚠️ 警告：魔王出現了！"
+            },
+            en: {
+                title: "Mandarin Hero RPG", ready: "Ready for Battle!", menuBtn: "Retreat", hero: "Hero",
+                hintWarn: "💡 You must answer every word correctly to defeat the boss!", loading: "Loading...",
+                showHint: "Show Hint (Zhuyin/Pinyin)", victory: "Victory!", continueBtn: "Continue",
+                backMenuBtn: "Main Menu", selectPrompt: "Select levels to review (Max 4)",
+                selectMinOne: "Select at least 1 level", startSingle: "Start Challenge", startMixed: "Start Mixed Review",
+                maxHp: "Max HP:", treasures: "Collected Treasures", noTreasure: "No treasures yet... Fight more!",
+                namePromptTitle: "Hero, what is your name?", namePromptDesc: "Enter your name so the monsters will remember you!",
+                stylePrompt: "Select Style", style1: "⚔️ Swordsman", style2: "🪄 Mage",
+                namePlaceholder: "e.g., Alex", nameWarning: "Please enter a name to start!",
+                cancel: "Cancel", confirm: "Confirm", level: "Lv.",
+                correctMsg: "Correct! (+{hp} HP)", wrongMsg: "Wrong! (-{dmg} HP)",
+                fallen: "The hero has fallen...", retryDesc: "{name}, you need more practice. Try again!",
+                retryBtn: "Retry", ultimateBoss: "Ultimate Boss", mixedEncounter: "Mixed Review | vs {boss}!",
+                singleEncounter: "{level} | vs {boss}!", trainingComplete: "Training Complete!",
+                mixedSuccess: "Amazing! Hero {name} cleared the training!", perfectClear: "Perfect Clear!",
+                singleSuccess: "Congrats {name}! You defeated {monster}!",
+                expGain: "Gained {exp} EXP!", levelUp: " 🌟 Level Up!",
+                foundTreasure: "🎉 Treasure Acquired/Upgraded!", close: "Close", defaultName: "Hero",
+                selectedCount: "({n} selected)", treasureInfoTitle: "Treasure Info",
+                treasureEffect: "Current Bonus:\n{desc}", deleteConfirm: "Delete all progress, levels, and treasures?",
+                combo: "Combo", critText: "CRITICAL!", leaderboardTitle: "Hall of Fame", lbRank: "Rank",
+                lbName: "Hero", lbLevel: "Lv.", lbExp: "EXP", loadingData: "Loading...",
+                emptyLeaderboard: "No records yet. Be the first!",
+                permissionError: "Failed to load! Set Firestore rules to 'allow read, write: if true;' in Firebase Console.",
+                cleared: "CLEARED", maxSelectWarn: "You can select a maximum of 4 levels!", bossAppear: "⚠️ WARNING: Boss Approaching!"
+            }
+        };
+
+        // ==========================================
+        // 全域變數宣告
+        // ==========================================
+        window.currentLang = localStorage.getItem('chineseRpgLang') || 'zh';
+        window.selectedLevels = []; 
+        window.isCustomMode = false; 
+        window.playerMaxHp = 200;
+        window.playerHp = 200;
+        window.currentPlayerDamage = 10;
+        window.currentMonsterDamage = 15;
+        window.currentHealAmount = 5;
+        window.currentExpMultiplier = 1.0;
+        window.currentCombo = 0; 
+        window.currentMonster = {};
+        window.finalBoss = {}; // 紀錄關卡最終魔王
+        window.monsterMaxHp = 100;
+        window.monsterHp = 100;
+        window.availableQuestions = [];
+        window.allPoolQuestions = []; 
+        window.currentQ = null;
+        window.isNameForced = false;
+        window.tempStyle = 'swordsman';
+        window.currentWaveQuestionsLeft = 0; // 紀錄目前波段還剩幾題
+        window.isBossWave = false; // 紀錄是否為魔王波段
+
+        window.playerStats = JSON.parse(localStorage.getItem('chineseRpgStats')) || { name: "", level: 1, exp: 0, maxExp: 100, baseMaxHp: 200, treasures: {}, style: 'swordsman' };
+        
+        if (window.playerStats.gender === 'boy') window.playerStats.style = 'swordsman';
+        if (window.playerStats.gender === 'girl') window.playerStats.style = 'mage';
+
+        if (!window.playerStats.name || window.playerStats.name === "小勇者" || window.playerStats.name === "Hero") window.playerStats.name = "";
+        if (Array.isArray(window.playerStats.treasures)) window.playerStats.treasures = {};
+        if (!window.playerStats.style) window.playerStats.style = 'swordsman';
+
+        window.heroSVGContents = {
+            swordsman: `
+                <path d="M 20 50 L 10 90 L 90 90 L 80 50 Z" fill="#b91c1c"/>
+                <rect x="35" y="45" width="30" height="40" rx="8" fill="#3b82f6"/>
+                <path d="M 35 50 L 65 50 L 50 70 Z" fill="#93c5fd"/>
+                <circle cx="50" cy="35" r="22" fill="#e2e8f0"/>
+                <path d="M 25 35 L 75 35 L 65 55 L 35 55 Z" fill="#94a3b8"/>
+                <rect x="45" y="20" width="10" height="25" fill="#cbd5e1"/>
+                <path d="M 50 15 C 40 -5, 20 5, 10 25" stroke="#fbbf24" stroke-width="6" fill="none" stroke-linecap="round"/>
+                <rect x="75" y="20" width="8" height="55" fill="#f8fafc" rx="3"/>
+                <rect x="65" y="55" width="28" height="6" fill="#fbbf24" rx="2"/>
+                <circle cx="79" cy="80" r="5" fill="#ef4444"/>
+                <path d="M 10 45 L 35 45 L 35 70 C 35 85, 22.5 95, 22.5 95 C 22.5 95, 10 85, 10 70 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
+                <path d="M 15 50 L 30 50 L 30 68 C 30 78, 22.5 85, 22.5 85 C 22.5 85, 15 78, 15 68 Z" fill="#3b82f6"/>
+            `,
+            mage: `
+                <path d="M 30 20 C 10 20, 5 60, 15 90 L 85 90 C 95 60, 90 20, 70 20 Z" fill="#f59e0b"/>
+                <path d="M 30 50 L 15 90 L 85 90 L 70 50 Z" fill="#4c1d95"/>
+                <rect x="35" y="45" width="30" height="40" rx="10" fill="#a855f7"/>
+                <path d="M 40 45 L 60 45 L 50 80 Z" fill="#e9d5ff"/>
+                <circle cx="50" cy="35" r="20" fill="#fed7aa"/>
+                <path d="M 40 35 Q 43 32 45 35" fill="none" stroke="#431407" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M 55 35 Q 57 32 60 35" fill="none" stroke="#431407" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="38" cy="40" r="3" fill="#fca5a5" opacity="0.6"/>
+                <circle cx="62" cy="40" r="3" fill="#fca5a5" opacity="0.6"/>
+                <path d="M 28 30 Q 50 10 72 30" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+                <polygon points="50,18 55,25 45,25" fill="#38bdf8"/>
+                <rect x="20" y="15" width="6" height="75" fill="#78350f" rx="3"/>
+                <circle cx="23" cy="15" r="12" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="23" cy="15" r="6" fill="#bae6fd"/>
+                <circle cx="10" cy="10" r="2" fill="#bae6fd"/>
+                <circle cx="35" cy="5" r="3" fill="#bae6fd"/>
+                <circle cx="15" cy="30" r="2" fill="#bae6fd"/>
+            `
+        };
+
+        // 隨機小怪資料庫
+        window.smallMonstersDB = [
+            { name: {zh: "小史萊姆", en: "Small Slime"}, icon: "fa-ghost", color: "text-green-400" },
+            { name: {zh: "血翼飛鴉", en: "Blood Crow"}, icon: "fa-crow", color: "text-red-500" },
+            { name: {zh: "劇毒蜘蛛", en: "Poison Spider"}, icon: "fa-spider", color: "text-purple-500" },
+            { name: {zh: "小偷地精", en: "Goblin Thief"}, icon: "fa-user-ninja", color: "text-yellow-500" },
+            { name: {zh: "突變青蛙", en: "Mutant Frog"}, icon: "fa-frog", color: "text-teal-400" }
+        ];
+
+        // Firebase 預留空函數
+        window.uploadScoreToFirebase = async function() {};
+        window.getCurrentUserId = () => null;
+        window.leaderboardData = [];
+
+        window.toggleLanguage = function() {
+            window.currentLang = window.currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('chineseRpgLang', window.currentLang);
+            window.updateAllLanguageUI();
+            
+            const menuScreen = document.getElementById('menu-screen');
+            if (!menuScreen.classList.contains('hidden')) {
+                window.updateStartButton();
+                window.updateMenuStatsUI();
+                window.levelsData.forEach((level, index) => {
+                    const card = document.getElementById(`lesson-card-${index}`);
+                    if (card) {
+                        const titleSpan = card.querySelector('.lesson-title-trans');
+                        if (titleSpan) titleSpan.innerText = level.title;
+                    }
+                });
+            } else if (!document.getElementById('game-container').classList.contains('hidden')) {
+                if (window.isBossWave) {
+                    if (window.isCustomMode) {
+                        document.getElementById('level-display').innerText = window.t('mixedEncounter', {boss: window.currentMonster.name[window.currentLang]});
+                    } else {
+                        const levelData = window.levelsData[window.selectedLevels[0]];
+                        document.getElementById('level-display').innerText = window.t('singleEncounter', {level: levelData.levelName, boss: window.currentMonster.name[window.currentLang]});
+                    }
+                } else {
+                    document.getElementById('level-display').innerText = window.t('ready');
+                }
+                document.getElementById('monster-name').innerText = window.currentMonster.name[window.currentLang];
+                window.updateComboUI(); 
+            }
+            if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
+                if (typeof window.renderLeaderboard === 'function') window.renderLeaderboard();
+            }
+        };
+
+        window.t = function(key, params = {}) {
+            let str = i18n[window.currentLang][key] || i18n['zh'][key] || key;
+            for (const [k, v] of Object.entries(params)) {
+                str = str.replace(`{${k}}`, v);
+            }
+            return str;
+        };
+
+        window.updateAllLanguageUI = function() {
+            document.querySelectorAll('.lang-toggle-text').forEach(el => {
+                el.innerText = window.currentLang === 'zh' ? 'EN' : '中';
+            });
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[window.currentLang][key]) { el.innerText = i18n[window.currentLang][key]; }
+            });
+            document.getElementById('name-input').placeholder = window.t('namePlaceholder');
+        };
+
+        // ==========================================
+        // 12 課專屬寶物 & 升級資料庫
+        // ==========================================
+        window.treasuresDB = [
+            { id: 't1', levelIdx: 0, name: {zh: '新手鉛筆', en: 'Beginner Pencil'}, icon: 'fa-pencil', color: 'text-gray-300', effectType: 'atk', effectVal: 2, desc: {zh: '攻擊力 +{v}', en: 'Attack Power +{v}'} },
+            { id: 't2', levelIdx: 1, name: {zh: '商人算盤', en: 'Merchant Abacus'}, icon: 'fa-calculator', color: 'text-yellow-600', effectType: 'exp', effectVal: 10, desc: {zh: '經驗值獲得 +{v}%', en: 'EXP Gain +{v}%'} },
+            { id: 't3', levelIdx: 2, name: {zh: '購物提籃', en: 'Shopping Basket'}, icon: 'fa-shopping-basket', color: 'text-orange-400', effectType: 'heal', effectVal: 2, desc: {zh: '答對回血量 +{v}', en: 'Heal Amount +{v}'} },
+            { id: 't4', levelIdx: 3, name: {zh: '活力漢堡', en: 'Vitality Burger'}, icon: 'fa-burger', color: 'text-yellow-400', effectType: 'hp', effectVal: 15, desc: {zh: '最大生命值 +{v}', en: 'Max HP +{v}'} },
+            { id: 't5', levelIdx: 4, name: {zh: '秋風披風', en: 'Autumn Cloak'}, icon: 'fa-leaf', color: 'text-orange-500', effectType: 'def', effectVal: 1, desc: {zh: '受怪物傷害 -{v}', en: 'Damage Taken -{v}'} },
+            { id: 't6', levelIdx: 5, name: {zh: '幸運紅包', en: 'Lucky Envelope'}, icon: 'fa-envelope-open-text', color: 'text-red-500', effectType: 'heal', effectVal: 2, desc: {zh: '答對回血量 +{v}', en: 'Heal Amount +{v}'} },
+            { id: 't7', levelIdx: 6, name: {zh: '夢境沙漏', en: 'Dream Hourglass'}, icon: 'fa-hourglass-half', color: 'text-purple-400', effectType: 'def', effectVal: 1, desc: {zh: '受怪物傷害 -{v}', en: 'Damage Taken -{v}'} },
+            { id: 't8', levelIdx: 7, name: {zh: '寵物項圈', en: 'Pet Collar'}, icon: 'fa-paw', color: 'text-amber-700', effectType: 'hp', effectVal: 15, desc: {zh: '最大生命值 +{v}', en: 'Max HP +{v}'} },
+            { id: 't9', levelIdx: 8, name: {zh: '魔法指南針', en: 'Magic Compass'}, icon: 'fa-compass', color: 'text-blue-400', effectType: 'atk', effectVal: 2, desc: {zh: '攻擊力 +{v}', en: 'Attack Power +{v}'} },
+            { id: 't10', levelIdx: 9, name: {zh: '旅行背包', en: 'Travel Backpack'}, icon: 'fa-suitcase-rolling', color: 'text-emerald-500', effectType: 'exp', effectVal: 10, desc: {zh: '經驗值獲得 +{v}%', en: 'EXP Gain +{v}%'} },
+            { id: 't11', levelIdx: 10, name: {zh: '萬獸圖鑑', en: 'Beast Guide'}, icon: 'fa-book-open', color: 'text-stone-300', effectType: 'atk', effectVal: 2, desc: {zh: '攻擊力 +{v}', en: 'Attack Power +{v}'} },
+            { id: 't12', levelIdx: 11, name: {zh: '通訊耳機', en: 'Comms Headset'}, icon: 'fa-headset', color: 'text-gray-400', effectType: 'hp', effectVal: 15, desc: {zh: '最大生命值 +{v}', en: 'Max HP +{v}'} }
+        ];
+
+        window.saveStats = function() {
+            localStorage.setItem('chineseRpgStats', JSON.stringify(window.playerStats));
+            if (typeof window.updateMenuStatsUI === 'function') {
+                window.updateMenuStatsUI();
+            }
+            if (typeof window.uploadScoreToFirebase === 'function') {
+                window.uploadScoreToFirebase();
+            }
+        };
+
+        window.resetSaveData = function() {
+            if(confirm(window.t('deleteConfirm'))) {
+                localStorage.removeItem('chineseRpgStats');
+                window.playerStats = { name: "", level: 1, exp: 0, maxExp: 100, baseMaxHp: 200, treasures: {}, style: 'swordsman' };
+                if (typeof window.updateMenuStatsUI === 'function') {
+                    window.updateMenuStatsUI();
+                }
+                window.openNameModal(true);
+            }
+        };
+
+        // ==========================================
+        // 學華語向前走第二冊 完整題庫 (填空情境題 - 語意不通選項)
+        // ==========================================
+        window.levelsData = [
+            { levelName: "第一課 (L1)", title: "新同學 (New Classmates)", monster: { name: {zh: "單字史萊姆", en: "Vocab Slime"}, icon: "fa-ghost", color: "text-purple-400" }, questions: [
+                { question: "今天我們班有兩個 ______ 同學。", zhuyin: "ㄒㄧㄣ", pinyin: "xīn", options: ["新", "介紹", "游泳", "高興"], answer: "新" },
+                { question: "老師說：「______ 請他們到前面說話。」", zhuyin: "ㄒㄧㄢˋ ㄗㄞˋ", pinyin: "xiàn zài", options: ["現在", "自己", "看書", "華語"], answer: "現在" },
+                { question: "老師請新同學 ______ 一下。", zhuyin: "ㄐㄧㄝˋ ㄕㄠˋ", pinyin: "jiè shào", options: ["介紹", "今年", "游泳", "最"], answer: "介紹" },
+                { question: "兩個新同學介紹 ______。", zhuyin: "ㄗˋ ㄐㄧˇ", pinyin: "zì jǐ", options: ["自己", "游泳", "學", "跟"], answer: "自己" },
+                { question: "男同學對同學說：「______ 好！我叫方友朋。」", zhuyin: "ㄉㄚˋ ㄐㄧㄚ", pinyin: "dà jiā", options: ["大家", "比較", "看書", "今年"], answer: "大家" },
+                { question: "那個男同學的名字叫 ______。", zhuyin: "ㄈㄤ ㄧㄡˇ ㄆㄥˊ", pinyin: "fāng yǒu péng", options: ["方友朋", "華語", "高興", "認識"], answer: "方友朋" },
+                { question: "他 ______ 八歲。", zhuyin: "ㄐㄧㄣ ㄋㄧㄢˊ", pinyin: "jīn nián", options: ["今年", "介紹", "最", "歡迎"], answer: "今年" },
+                { question: "友朋喜歡 ______ 爸爸一起去運動。", zhuyin: "ㄍㄣ", pinyin: "gēn", options: ["跟", "自己", "游泳", "看書"], answer: "跟" },
+                { question: "友朋最喜歡跟爸爸一起去 ______。", zhuyin: "ㄧㄡˊ ㄩㄥˇ", pinyin: "yóu yǒng", options: ["游泳", "大家", "今年", "新"], answer: "游泳" },
+                { question: "那個女同學的名字叫 ______。", zhuyin: "ㄓㄤ ㄌㄧˋ", pinyin: "zhāng lì", options: ["張莉", "學", "比較", "現在"], answer: "張莉" },
+                { question: "她 ______ 喜歡看書。", zhuyin: "ㄅㄧˇ ㄐㄧㄠˋ", pinyin: "bǐ jiào", options: ["比較", "介紹", "認識", "華語"], answer: "比較" },
+                { question: "她不喜歡運動，她比較喜歡 ______。", zhuyin: "ㄎㄢˋ ㄕㄨ", pinyin: "kàn shū", options: ["看書", "最", "高興", "自己"], answer: "看書" },
+                { question: "大文看到新同學，他很 ______。", zhuyin: "ㄍㄠ ㄒㄧㄥˋ", pinyin: "gāo xìng", options: ["高興", "跟", "今年", "介紹"], answer: "高興" },
+                { question: "大文很高興可以 ______ 新同學。", zhuyin: "ㄖㄣˋ ㄕˋ", pinyin: "rèn shi", options: ["認識", "游泳", "大家", "最"], answer: "認識" },
+                { question: "老師說：「______ 你們來中文學校！」", zhuyin: "ㄏㄨㄢ ㄧㄥˊ", pinyin: "huān yíng", options: ["歡迎", "看書", "自己", "比較"], answer: "歡迎" },
+                { question: "他們來中文學校 ______ 中文。", zhuyin: "ㄒㄩㄝˊ", pinyin: "xué", options: ["學", "現在", "高興", "跟"], answer: "學" },
+                { question: "老師歡迎他們來學 ______。", zhuyin: "ㄏㄨㄚˊ ㄩˇ", pinyin: "huá yǔ", options: ["華語", "認識", "今年", "游泳"], answer: "華語" },
+                { question: "友朋 ______ 喜歡的運動是游泳。", zhuyin: "ㄗㄨㄟˋ", pinyin: "zuì", options: ["最", "介紹", "歡迎", "大家"], answer: "最" }
+            ]},
+            { levelName: "第二課 (L2)", title: "我爸爸做生意 (My Dad Is in Business)", monster: { name: {zh: "親戚蜘蛛", en: "Relative Spider"}, icon: "fa-spider", color: "text-blue-400" }, questions: [
+                { question: "照片左邊是媽媽的爸爸，他是我的 ______。", zhuyin: "ㄨㄞˋ ㄍㄨㄥ", pinyin: "wài gōng", options: ["外公", "以前", "上班", "銀行"], answer: "外公" },
+                { question: "照片右邊是媽媽的媽媽，她是我的 ______。", zhuyin: "ㄨㄞˋ ㄆㄛˊ", pinyin: "wài pó", options: ["外婆", "以後", "一樣", "電腦公司"], answer: "外婆" },
+                { question: "我外公 ______ 在醫院工作，他是一個醫生。", zhuyin: "ㄧˇ ㄑㄧㄢˊ", pinyin: "yǐ qián", options: ["以前", "醫生", "做生意", "幫"], answer: "以前" },
+                { question: "你爸爸媽媽每天做什麼 ______？", zhuyin: "ㄍㄨㄥ ㄗㄨㄛˋ", pinyin: "gōng zuò", options: ["工作", "外公", "一樣", "以前"], answer: "工作" },
+                { question: "張莉的爸爸不在公司上班，他自己 ______。", zhuyin: "ㄗㄨㄛˋ ㄕㄥ ㄧˋ", pinyin: "zuò shēng yì", options: ["做生意", "外婆", "以後", "以前"], answer: "做生意" },
+                { question: "爸爸做生意很忙，媽媽每天都去 ______ 他。", zhuyin: "ㄅㄤ", pinyin: "bāng", options: ["幫", "銀行", "工作", "電腦公司"], answer: "幫" },
+                { question: "大文的爸爸在 ______ 上班，天天用電腦。", zhuyin: "ㄉㄧㄢˋ ㄋㄠˇ ㄍㄨㄥ ㄙ", pinyin: "diàn nǎo gōng sī", options: ["電腦公司", "幫", "醫生", "外公"], answer: "電腦公司" },
+                { question: "爸爸星期一到星期五都要去公司 ______。", zhuyin: "ㄕㄤˋ ㄅㄢ", pinyin: "shàng bān", options: ["上班", "一樣", "以前", "外婆"], answer: "上班" },
+                { question: "大文的媽媽在 ______ 工作。", zhuyin: "ㄧㄣˊ ㄏㄤˊ", pinyin: "yín háng", options: ["銀行", "一樣", "幫", "以後"], answer: "銀行" },
+                { question: "外公以前是 ______，可是現在不工作了。", zhuyin: "ㄧ ㄕㄥ", pinyin: "yī shēng", options: ["醫生", "一樣", "幫", "以後"], answer: "醫生" },
+                { question: "心美，你長大 ______ 想做什麼？", zhuyin: "ㄧˇ ㄏㄡˋ", pinyin: "yǐ hòu", options: ["以後", "銀行", "外公", "工作"], answer: "以後" },
+                { question: "我想跟爸爸 ______，也去電腦公司上班。", zhuyin: "ㄧˊ ㄧㄤˋ", pinyin: "yí yàng", options: ["一樣", "醫生", "以前", "幫"], answer: "一樣" }
+            ]},
+            { levelName: "第三課 (L3)", title: "去超級市場 (Going to the Supermarket)", monster: { name: {zh: "採購雲怪", en: "Shopping Cloud"}, icon: "fa-cloud-sun-rain", color: "text-teal-400" }, questions: [
+                { question: "媽媽，你今天 ______ 去哪裡？", zhuyin: "ㄧㄠˋ", pinyin: "yào", options: ["要", "魚", "巧克力", "買"], answer: "要" },
+                { question: "我要去 ______ 的超級市場。", zhuyin: "ㄈㄨˋ ㄐㄧㄣˋ", pinyin: "fù jìn", options: ["附近", "可以", "買", "魚"], answer: "附近" },
+                { question: "媽媽要去 ______ 買東西。", zhuyin: "ㄔㄠ ㄐㄧˊ ㄕˋ ㄔㄤˇ", pinyin: "chāo jí shì chǎng", options: ["超級市場", "要", "可以", "糖果"], answer: "超級市場" },
+                { question: "媽媽問大文：「你要跟我一起去買 ______ 嗎？」", zhuyin: "ㄉㄨㄥ ㄒㄧ", pinyin: "dōng xi", options: ["東西", "附近", "要", "可以"], answer: "東西" },
+                { question: "媽媽問：「你今天想 ______ 什麼？」", zhuyin: "ㄇㄞˇ", pinyin: "mǎi", options: ["買", "附近", "超級市場", "冰淇淋"], answer: "買" },
+                { question: "夏天很熱，大文想吃 ______。", zhuyin: "ㄅㄧㄥ ㄑㄧˊ ㄌㄧㄣˊ", pinyin: "bīng qí lín", options: ["冰淇淋", "買", "要", "可以"], answer: "冰淇淋" },
+                { question: "大文最喜歡吃的冰淇淋是 ______ 冰淇淋。", zhuyin: "ㄑㄧㄠˇ ㄎㄜˋ ㄌㄧˋ", pinyin: "qiǎo kè lì", options: ["巧克力", "附近", "買", "要"], answer: "巧克力" },
+                { question: "媽媽買了魚、牛肉、青菜，還要買 ______。", zhuyin: "ㄇㄧˇ", pinyin: "mǐ", options: ["米", "可以", "附近", "要"], answer: "米" },
+                { question: "哥哥喜歡吃肉，可是妹妹比較喜歡吃綠色的 ______。", zhuyin: "ㄑㄧㄥ ㄘㄞˋ", pinyin: "qīng cài", options: ["青菜", "要", "可以", "買"], answer: "青菜" },
+                { question: "我們家的小貓最喜歡吃 ______。", zhuyin: "ㄩˊ", pinyin: "yú", options: ["魚", "可以", "附近", "買"], answer: "魚" },
+                { question: "媽媽今天不買魚，她要買 ______。", zhuyin: "ㄋㄧㄡˊ ㄖㄡˋ", pinyin: "niú ròu", options: ["牛肉", "可以", "附近", "要"], answer: "牛肉" },
+                { question: "大文問媽媽：「我也 ______ 買糖果嗎？」", zhuyin: "ㄎㄜˇ ㄧˇ", pinyin: "kě yǐ", options: ["可以", "魚", "米", "牛肉"], answer: "可以" },
+                { question: "弟弟很喜歡吃甜甜的 ______。", zhuyin: "ㄊㄤˊ ㄍㄨㄛˇ", pinyin: "táng guǒ", options: ["糖果", "要", "可以", "買"], answer: "糖果" }
+            ]},
+            { levelName: "第四課 (L4)", title: "我想吃漢堡 (I Want to Eat a Hamburger)", monster: { name: {zh: "貪吃漢堡怪", en: "Glutton Burger"}, icon: "fa-burger", color: "text-orange-500" }, questions: [
+                { question: "哥哥想吃 ______ 跟薯條。", zhuyin: "ㄏㄢˋ ㄅㄠˇ", pinyin: "hàn bǎo", options: ["漢堡", "出去", "快點", "已經"], answer: "漢堡" },
+                { question: "弟弟想吃漢堡跟 ______。", zhuyin: "ㄕㄨˇ ㄊㄧㄠˊ", pinyin: "shǔ tiáo", options: ["薯條", "週末", "已經", "快點"], answer: "薯條" },
+                { question: "媽媽，我們今天可不可以 ______ 吃飯？", zhuyin: "ㄔㄨ ㄑㄩˋ", pinyin: "chū qù", options: ["出去", "湯", "漢堡", "餓"], answer: "出去" },
+                { question: "媽媽說：「今天 ______ 在家吃。」", zhuyin: "ㄒㄧㄢ", pinyin: "xiān", options: ["先", "薯條", "湯", "麵"], answer: "先" },
+                { question: "我們 ______ 再出去吃吧！", zhuyin: "ㄓㄡ ㄇㄛˋ", pinyin: "zhōu mò", options: ["週末", "餓", "了", "麵"], answer: "週末" },
+                { question: "今天先在家吃，週末 ______ 出去吃。", zhuyin: "ㄗㄞˋ", pinyin: "zài", options: ["再", "蛋炒飯", "湯", "漢堡"], answer: "再" },
+                { question: "媽媽問：「今天 ______ 你們想吃什麼？」", zhuyin: "ㄨㄢˇ ㄘㄢ", pinyin: "wǎn cān", options: ["晚餐", "出去", "已經", "了"], answer: "晚餐" },
+                { question: "大文不想吃飯，他說：「我想吃 ______。」", zhuyin: "ㄇㄧㄢˋ", pinyin: "miàn", options: ["麵", "週末", "先", "了"], answer: "麵" },
+                { question: "文文喜歡吃米飯，她說：「我想吃 ______。」", zhuyin: "ㄉㄢˋ ㄔㄠˇ ㄈㄢˋ", pinyin: "dàn chǎo fàn", options: ["蛋炒飯", "再", "餓", "快點"], answer: "蛋炒飯" },
+                { question: "吃蛋炒飯的時候，有 ______ 可以喝嗎？", zhuyin: "ㄊㄤ", pinyin: "tāng", options: ["湯", "週末", "出去", "已經"], answer: "湯" },
+                { question: "媽媽說：「我已經做了 ______，很好喝喔！」", zhuyin: "ㄩˋ ㄇㄧˇ ㄊㄤ", pinyin: "yù mǐ tāng", options: ["玉米湯", "再", "餓", "了"], answer: "玉米湯" },
+                { question: "太好了，媽媽 ______ 把飯做好了。", zhuyin: "ㄧˇ ㄐㄧㄥ", pinyin: "yǐ jīng", options: ["已經", "漢堡", "薯條", "湯"], answer: "已經" },
+                { question: "媽媽已經做 ______ 玉米湯。", zhuyin: "ㄌㄜ˙", pinyin: "le", options: ["了", "出去", "週末", "蛋炒飯"], answer: "了" },
+                { question: "大文想吃飯了，因為他現在很 ______。", zhuyin: "ㄜˋ", pinyin: "è", options: ["餓", "先", "再", "麵"], answer: "餓" },
+                { question: "大文很餓，想 ______ 吃晚飯。", zhuyin: "ㄎㄨㄞˋ ㄉㄧㄢˇ", pinyin: "kuài diǎn", options: ["快點", "玉米湯", "晚餐", "已經"], answer: "快點" }
+            ]},
+            { levelName: "第五課 (L5)", title: "秋天快到了 (Autumn Is Almost Here)", monster: { name: {zh: "彩繪青蛙", en: "Painter Frog"}, icon: "fa-frog", color: "text-pink-400" }, questions: [
+                { question: "______ 快到了，天氣不冷也不熱。", zhuyin: "ㄑㄧㄡ ㄊㄧㄢ", pinyin: "qiū tiān", options: ["秋天", "顏色", "草", "變"], answer: "秋天" },
+                { question: "你看！外面的 ______ 掉下來了。", zhuyin: "ㄕㄨˋ ㄧㄝˋ", pinyin: "shù yè", options: ["樹葉", "舒服", "時候", "天氣"], answer: "樹葉" },
+                { question: "秋天到了，樹葉 ______ 黃了。", zhuyin: "ㄅㄧㄢˋ", pinyin: "biàn", options: ["變", "院子", "還是", "不錯"], answer: "變" },
+                { question: "秋天的時候，樹葉變 ______ 了。", zhuyin: "ㄏㄨㄤˊ", pinyin: "huáng", options: ["黃", "時候", "春天", "舒服"], answer: "黃" },
+                { question: "外面的 ______ 長得很高。", zhuyin: "ㄘㄠˇ", pinyin: "cǎo", options: ["草", "顏色", "舒服", "天氣"], answer: "草" },
+                { question: "秋天到了，可是草 ______ 是綠色的。", zhuyin: "ㄏㄞˊ ㄕˋ", pinyin: "hái shì", options: ["還是", "白色", "樹葉", "變"], answer: "還是" },
+                { question: "哥哥的自行車是 ______ 的。", zhuyin: "ㄌㄩˋ ㄙㄜˋ", pinyin: "lǜ sè", options: ["綠色", "時候", "還是", "變"], answer: "綠色" },
+                { question: "今天的 ______ 很好，我們出去玩吧。", zhuyin: "ㄊㄧㄢ ㄑㄧˋ", pinyin: "tiān qì", options: ["天氣", "顏色", "白色", "還是"], answer: "天氣" },
+                { question: "秋天天氣很好，我覺得很 ______。", zhuyin: "ㄕㄨ ㄈㄨˊ", pinyin: "shū fú", options: ["舒服", "綠色", "樹葉", "時候"], answer: "舒服" },
+                { question: "秋天很舒服，______ 也不錯。", zhuyin: "ㄔㄨㄣ ㄊㄧㄢ", pinyin: "chūn tiān", options: ["春天", "變", "黃", "還是"], answer: "春天" },
+                { question: "這本漫畫書很 ______，大家都喜歡看。", zhuyin: "ㄅㄨˊ ㄘㄨㄛˋ", pinyin: "bú cuò", options: ["不錯", "院子", "天氣", "綠色"], answer: "不錯" },
+                { question: "你的新玩具車是什麼 ______ 的？", zhuyin: "ㄧㄢˊ ㄙㄜˋ", pinyin: "yán sè", options: ["顏色", "舒服", "還是", "草"], answer: "顏色" },
+                { question: "春天的 ______，院子裡有很多花。", zhuyin: "ㄕˊ ㄏㄡˋ", pinyin: "shí hòu", options: ["時候", "變", "黃", "綠色"], answer: "時候" },
+                { question: "院子裡有很多顏色的 ______。", zhuyin: "ㄏㄨㄚ", pinyin: "huā", options: ["花", "天氣", "時候", "舒服"], answer: "花" },
+                { question: "大文家有一個大 ______，可以在裡面打球。", zhuyin: "ㄩㄢˋ ㄗ˙", pinyin: "yuàn zi", options: ["院子", "顏色", "春天", "還是"], answer: "院子" },
+                { question: "心美覺得 ______ 的花最漂亮。", zhuyin: "ㄏㄨㄥˊ ㄙㄜˋ", pinyin: "hóng sè", options: ["紅色", "時候", "不錯", "變"], answer: "紅色" },
+                { question: "天氣變冷 ______，冬天快到了。", zhuyin: "ㄌㄜ˙", pinyin: "le", options: ["了", "白色", "樹葉", "院子"], answer: "了" },
+                { question: "下雪了，外面都是 ______ 的。", zhuyin: "ㄅㄞˊ ㄙㄜˋ", pinyin: "bái sè", options: ["白色", "還是", "時候", "天氣"], answer: "白色" },
+                { question: "院子裡的花都很 ______。", zhuyin: "ㄆㄧㄠˋ ㄌㄧㄤˋ", pinyin: "piào liàng", options: ["漂亮", "草", "變", "顏色"], answer: "漂亮" }
+            ]},
+            { levelName: "第六課 (L6)", title: "農曆新年 (Lunar New Year)", monster: { name: {zh: "節慶幽靈", en: "Festival Ghost"}, icon: "fa-shirt", color: "text-indigo-400" }, questions: [
+                { question: "老師 ______ 農曆新年快到了。", zhuyin: "ㄕㄨㄛ", pinyin: "shuō", options: ["說", "農曆", "華人", "星期"], answer: "說" },
+                { question: "下個星期五是 ______ 新年。", zhuyin: "ㄋㄨㄥˊ ㄌㄧˋ", pinyin: "nóng lì", options: ["農曆", "說", "會", "下"], answer: "農曆" },
+                { question: "大文最喜歡的節日是 ______。", zhuyin: "ㄒㄧㄣ ㄋㄧㄢˊ", pinyin: "xīn nián", options: ["新年", "如果", "給", "每"], answer: "新年" },
+                { question: "______ 個星期五是農曆新年。", zhuyin: "ㄒㄧㄚˋ", pinyin: "xià", options: ["下", "華人", "年糕", "拜年"], answer: "下" },
+                { question: "我每個 ______ 都會去超級市場買東西。", zhuyin: "ㄒㄧㄥ ㄑㄧˊ", pinyin: "xīng qí", options: ["星期", "貼春聯", "紅包", "如果"], answer: "星期" },
+                { question: "媽媽會去 ______ 超市買東西嗎？", zhuyin: "ㄏㄨㄚˊ ㄖㄣˊ", pinyin: "huá rén", options: ["華人", "星期", "說", "明天"], answer: "華人" },
+                { question: "過年的時候我們要吃甜甜的 ______。", zhuyin: "ㄋㄧㄢˊ ㄍㄠ", pinyin: "nián gāo", options: ["年糕", "下", "給", "會"], answer: "年糕" },
+                { question: "媽媽今天 ______ 去超級市場買魚和牛肉。", zhuyin: "ㄏㄨㄟˋ", pinyin: "huì", options: ["會", "紅包", "那天", "農曆"], answer: "會" },
+                { question: "星期五是新年，______ 我們要給爺爺奶奶拜年。", zhuyin: "ㄋㄚˋ ㄊㄧㄢ", pinyin: "nà tiān", options: ["那天", "星期", "拜年", "如果"], answer: "那天" },
+                { question: "媽媽買了一個新玩具 ______ 我。", zhuyin: "ㄍㄟˇ", pinyin: "gěi", options: ["給", "臺灣", "會", "貼春聯"], answer: "給" },
+                { question: "新年的時候，我們要給爺爺奶奶 ______。", zhuyin: "ㄅㄞˋ ㄋㄧㄢˊ", pinyin: "bài nián", options: ["拜年", "年糕", "每", "下"], answer: "拜年" },
+                { question: "爺爺 ______ 年都會給我紅包。", zhuyin: "ㄇㄟˇ", pinyin: "měi", options: ["每", "放鞭炮", "臺灣", "農曆"], answer: "每" },
+                { question: "過年的時候，大人會給小孩子 ______。", zhuyin: "ㄏㄨㄥˊ ㄅㄠ", pinyin: "hóng bāo", options: ["紅包", "拜年", "明天", "說"], answer: "紅包" },
+                { question: "______ 在臺灣，過年的時候我們會放鞭炮。", zhuyin: "ㄖㄨˊ ㄍㄨㄛˇ", pinyin: "rú guǒ", options: ["如果", "華人", "貼春聯", "新年"], answer: "如果" },
+                { question: "我的外公和外婆住在 ______。", zhuyin: "ㄊㄞˊ ㄨㄢ", pinyin: "tái wān", options: ["臺灣", "那天", "說", "星期"], answer: "臺灣" },
+                { question: "新年的時候，我們會在門上 ______。", zhuyin: "ㄊㄧㄝ ㄔㄨㄣ ㄌㄧㄢˊ", pinyin: "tiē chūn lián", options: ["貼春聯", "給", "會", "農曆"], answer: "貼春聯" },
+                { question: "過年的時候，大家喜歡 ______，非常熱鬧。", zhuyin: "ㄈㄤˋ ㄅㄧㄢ ㄆㄠˋ", pinyin: "fàng biān pào", options: ["放鞭炮", "每", "下", "華人"], answer: "放鞭炮" },
+                { question: "老師說，______ 學校放假，我們不用上課。", zhuyin: "ㄇㄧㄥˊ ㄊㄧㄢ", pinyin: "míng tiān", options: ["明天", "年糕", "拜年", "紅包"], answer: "明天" }
+            ]},
+            { levelName: "第七課 (L7)", title: "早一點睡覺 (Going to Bed Early)", monster: { name: {zh: "日常機械兵", en: "Daily Robot"}, icon: "fa-robot", color: "text-gray-400" }, questions: [
+                { question: "早上八點了，大文 ______ 起床了！", zhuyin: "ㄍㄞ", pinyin: "gāi", options: ["該", "肥皂", "洗澡", "昨天"], answer: "該" },
+                { question: "媽媽說：「大文，該 ______ 了！快一點！」", zhuyin: "ㄑㄧˇ ㄔㄨㄤˊ", pinyin: "qǐ chuáng", options: ["起床", "乾淨", "知道", "肥皂"], answer: "起床" },
+                { question: "校車快走了，我們要 ______ 了！", zhuyin: "ㄌㄞˊ ㄅㄨˋ ㄐㄧˊ", pinyin: "lái bù jí", options: ["來不及", "刷牙", "洗臉", "昨天"], answer: "來不及" },
+                { question: "爸爸今天上班很忙，他現在覺得很 ______。", zhuyin: "ㄌㄟˋ", pinyin: "lèi", options: ["累", "洗澡", "肥皂", "別"], answer: "累" },
+                { question: "大文不想起來，他還想在房間裡 ______。", zhuyin: "ㄕㄨㄟˋ ㄐㄧㄠˋ", pinyin: "shuì jiào", options: ["睡覺", "該", "肥皂", "知道"], answer: "睡覺" },
+                { question: "媽媽說：「今天 ______ 要早一點睡。」", zhuyin: "ㄨㄢˇ ㄕㄤˋ", pinyin: "wǎn shàng", options: ["晚上", "乾淨", "用", "累"], answer: "晚上" },
+                { question: "明天要去中文學校，你今天晚上要 ______ 睡覺。", zhuyin: "ㄗㄠˇ ㄧˋ ㄉㄧㄢˇ", pinyin: "zǎo yì diǎn", options: ["早一點", "肥皂", "知道", "昨天"], answer: "早一點" },
+                { question: "現在已經很晚了，______ 去刷牙、洗澡。", zhuyin: "ㄍㄢˇ ㄎㄨㄞˋ", pinyin: "gǎn kuài", options: ["趕快", "洗臉", "累", "乾淨"], answer: "趕快" },
+                { question: "每天睡覺以前，別忘了要去 ______ 。", zhuyin: "ㄕㄨㄚ ㄧㄚˊ", pinyin: "shuā yá", options: ["刷牙", "該", "來不及", "昨天"], answer: "刷牙" },
+                { question: "去游泳回家以後，我們要先去 ______。", zhuyin: "ㄒㄧˇ ㄗㄠˇ", pinyin: "xǐ zǎo", options: ["洗澡", "肥皂", "該", "知道"], answer: "洗澡" },
+                { question: "大文 ______ 晚上已經洗過澡了，所以今天不想洗。", zhuyin: "ㄗㄨㄛˊ ㄊㄧㄢ", pinyin: "zuó tiān", options: ["昨天", "刷牙", "乾淨", "用"], answer: "昨天" },
+                { question: "媽媽說：「吃飯的時候，______ 看電視！」", zhuyin: "ㄅㄧㄝˊ", pinyin: "bié", options: ["別", "肥皂", "洗臉", "累"], answer: "別" },
+                { question: "還有，別 ______ 用肥皂洗臉。", zhuyin: "ㄨㄤˋ ㄌㄜ˙", pinyin: "wàng le", options: ["忘了", "晚上", "乾淨", "來不及"], answer: "忘了" },
+                { question: "大文問媽媽：「我要 ______ 什麼洗手？」", zhuyin: "ㄩㄥˋ", pinyin: "yòng", options: ["用", "昨天", "累", "晚上"], answer: "用" },
+                { question: "洗澡的時候，會用 ______ 把身體洗乾淨。", zhuyin: "ㄈㄟˊ ㄗㄠˋ", pinyin: "féi zào", options: ["肥皂", "該", "趕快", "知道"], answer: "肥皂" },
+                { question: "每天早上起床以後，我們要先刷牙和 ______。", zhuyin: "ㄒㄧˇ ㄌㄧㄢˇ", pinyin: "xǐ liǎn", options: ["洗臉", "肥皂", "來不及", "昨天"], answer: "洗臉" },
+                { question: "媽媽說的話，大文都已經 ______ 了。", zhuyin: "ㄓ ㄉㄠˋ", pinyin: "zhī dào", options: ["知道", "晚上", "肥皂", "乾淨"], answer: "知道" },
+                { question: "媽媽說洗手的時候，一定要洗 ______。", zhuyin: "ㄍㄢ ㄐㄧㄥˋ", pinyin: "gān jìng", options: ["乾淨", "昨天", "別", "該"], answer: "乾淨" }
+            ]},
+            { levelName: "第八課 (L8)", title: "我的寵物 (My Pet)", monster: { name: {zh: "寵物雪人", en: "Pet Snowman"}, icon: "fa-snowman", color: "text-cyan-200" }, questions: [
+                { question: "請問你們家有養 ______ 嗎？", zhuyin: "ㄔㄨㄥˇ ㄨˋ", pinyin: "chǒng wù", options: ["寵物", "去年", "上個月", "隻"], answer: "寵物" },
+                { question: "昨天爸爸的朋友 ______ 我一個新玩具。", zhuyin: "ㄙㄨㄥˋ ㄍㄟˇ", pinyin: "sòng gěi", options: ["送給", "兔子", "散步", "可愛"], answer: "送給" },
+                { question: "大文家有兩 ______ 小貓。", zhuyin: "ㄓ", pinyin: "zhī", options: ["隻", "餵", "非常", "過"], answer: "隻" },
+                { question: "友朋最喜歡的動物是 ______，他每天都會跟牠一起玩。", zhuyin: "ㄍㄡˇ", pinyin: "gǒu", options: ["狗", "帶", "不見了", "去年"], answer: "狗" },
+                { question: "大文每天都會 ______ 他的狗去公園玩。", zhuyin: "ㄉㄞˋ", pinyin: "dài", options: ["帶", "貓", "隻", "可愛"], answer: "帶" },
+                { question: "吃完晚飯以後，我們一家人喜歡去公園 ______。", zhuyin: "ㄙㄢˋ ㄅㄨˋ", pinyin: "sàn bù", options: ["散步", "給", "寵物", "牠們"], answer: "散步" },
+                { question: "我家有兩隻狗，我每天都會帶 ______ 出去運動。", zhuyin: "ㄊㄚ ㄇㄣˊ", pinyin: "tā men", options: ["牠們", "非常", "過", "兔子"], answer: "牠們" },
+                { question: "張莉，你以前養 ______ 小鳥嗎？", zhuyin: "ㄍㄨㄛˋ", pinyin: "guò", options: ["過", "狗", "散步", "上個月"], answer: "過" },
+                { question: "我沒養過狗，但是我 ______ 過貓。", zhuyin: "ㄧㄤˇ", pinyin: "yǎng", options: ["養", "不見了", "去年", "非常"], answer: "養" },
+                { question: "今年我八歲，______ 我七歲。", zhuyin: "ㄑㄩˋ ㄋㄧㄢˊ", pinyin: "qù nián", options: ["去年", "餵", "隻", "送給"], answer: "去年" },
+                { question: "張莉以前有一隻 ______，非常喜歡吃魚。", zhuyin: "ㄇㄠ", pinyin: "māo", options: ["貓", "上個月", "帶", "給"], answer: "貓" },
+                { question: "媽媽 ______ 去了臺灣旅行，這個月才回家。", zhuyin: "ㄕㄤˋ ㄍㄜ˙ ㄩㄝˋ", pinyin: "shàng ge yuè", options: ["上個月", "兔子", "散步", "寵物"], answer: "上個月" },
+                { question: "弟弟的玩具車 ______，他現在找不到。", zhuyin: "ㄅㄨˋ ㄐㄧㄢˋ ㄌㄜ˙", pinyin: "bù jiàn le", options: ["不見了", "狗", "過", "餵"], answer: "不見了" },
+                { question: "我也養過兔子，我覺得兔子 ______ 聰明。", zhuyin: "ㄈㄟ ㄔㄤˊ", pinyin: "fēi cháng", options: ["非常", "送給", "隻", "帶"], answer: "非常" },
+                { question: "妹妹穿這件紅色的衣服，看起來真 ______。", zhuyin: "ㄎㄜˇ ㄞˋ", pinyin: "kě ài", options: ["可愛", "去年", "牠們", "養"], answer: "可愛" },
+                { question: "每天早上起床，我都會先去 ______ 我的小狗吃飯。", zhuyin: "ㄨㄟˋ", pinyin: "wèi", options: ["餵", "上個月", "貓", "非常"], answer: "餵" },
+                { question: "以後我想養一隻白色的 ______，因為牠的耳朵長長的。", zhuyin: "ㄊㄨˋ ㄗ˙", pinyin: "tù zi", options: ["兔子", "帶", "過", "不見了"], answer: "兔子" },
+                { question: "農曆新年的時候，爺爺都會 ______ 我一個紅包。", zhuyin: "ㄍㄟˇ", pinyin: "gěi", options: ["給", "狗", "可愛", "去年"], answer: "給" }
+            ]},
+            { levelName: "第九課 (L9)", title: "音樂教室在北方 (The Music Classroom Is to the North)", monster: { name: {zh: "方向火焰", en: "Compass Fire"}, icon: "fa-fire", color: "text-red-500" }, questions: [
+                { question: "媽媽 ______ 大文，他的漫畫書在桌子上面。", zhuyin: "ㄍㄠˋ ㄙㄨˋ", pinyin: "gào sù", options: ["告訴", "指南針", "因為", "北方"], answer: "告訴" },
+                { question: "音樂教室是什麼 ______？", zhuyin: "ㄈㄤ ㄒㄧㄤˋ", pinyin: "fāng xiàng", options: ["方向", "告訴", "所以", "足球場"], answer: "方向" },
+                { question: "東明手上拿的那個東西是 ______，也叫指北針。", zhuyin: "ㄓˇ ㄋㄢˊ ㄓㄣ", pinyin: "zhǐ nán zhēn", options: ["指南針", "西方", "哪裡", "因為"], answer: "指南針" },
+                { question: "新同學不知道音樂教室在 ______。", zhuyin: "ㄋㄚˇ ㄌㄧˇ", pinyin: "nǎ lǐ", options: ["哪裡", "它", "教室", "告訴"], answer: "哪裡" },
+                { question: "指南針會告訴我們南方和北方在哪裡，______ 很有用。", zhuyin: "ㄊㄚ", pinyin: "tā", options: ["它", "東方", "校門口", "方向"], answer: "它" },
+                { question: "我們學校的音樂教室在 ______。", zhuyin: "ㄅㄟˇ ㄈㄤ", pinyin: "běi fāng", options: ["北方", "因為", "它", "告訴"], answer: "北方" },
+                { question: "音樂教室在北方，校門口在 ______。", zhuyin: "ㄋㄢˊ ㄈㄤ", pinyin: "nán fāng", options: ["南方", "指南針", "所以", "哪裡"], answer: "南方" },
+                { question: "老師說我們今天要在這間 ______ 裡面上中文課。", zhuyin: "ㄐㄧㄠˋ ㄕˋ", pinyin: "jiào shì", options: ["教室", "西方", "方向", "它"], answer: "教室" },
+                { question: "太陽從 ______ 出來。", zhuyin: "ㄉㄨㄥ ㄈㄤ", pinyin: "dōng fāng", options: ["東方", "因為", "告訴", "足球場"], answer: "東方" },
+                { question: "月亮從 ______ 出來。", zhuyin: "ㄒㄧ ㄈㄤ", pinyin: "xī fāng", options: ["西方", "所以", "哪裡", "教室"], answer: "西方" },
+                { question: "下課以後，媽媽在 ______ 等大文一起回家。", zhuyin: "ㄒㄧㄠˋ ㄇㄣˊ ㄎㄡˇ", pinyin: "xiào mén kǒu", options: ["校門口", "指南針", "方向", "它"], answer: "校門口" },
+                { question: "______ 張莉想養一隻兔子，所以爺爺給了她一隻。", zhuyin: "ㄧㄣ ㄨㄟˋ", pinyin: "yīn wèi", options: ["因為", "南方", "教室", "告訴"], answer: "因為" },
+                { question: "因為音樂教室在北方，______ 足球場在東方。", zhuyin: "ㄙㄨㄛˇ ㄧˇ", pinyin: "suǒ yǐ", options: ["所以", "指南針", "哪裡", "它"], answer: "所以" },
+                { question: "哥哥最喜歡踢足球了，他下課都會去 ______。", zhuyin: "ㄗㄨˊ ㄑㄧㄡˊ ㄔㄤˇ", pinyin: "zú qiú chǎng", options: ["足球場", "西方", "告訴", "方向"], answer: "足球場" }
+            ]},
+            { levelName: "第十課 (L10)", title: "外公、外婆住在臺灣 (Grandpa and Grandma Live in Taiwan)", monster: { name: {zh: "旅行地龍", en: "Travel Dragon"}, icon: "fa-dragon", color: "text-emerald-500" }, questions: [
+                { question: "______ 的時候，學校不用上課，天氣也很熱。", zhuyin: "ㄕㄨˇ ㄐㄧㄚˋ", pinyin: "shǔ jià", options: ["暑假", "看", "臺北", "退休"], answer: "暑假" },
+                { question: "暑假的時候，我會去臺灣 ______ 外公和外婆。", zhuyin: "ㄎㄢˋ", pinyin: "kàn", options: ["看", "本來", "一次", "紐約"], answer: "看" },
+                { question: "請問你的外公和外婆 ______ 哪裡？", zhuyin: "ㄓㄨˋ ㄗㄞˋ", pinyin: "zhù zài", options: ["住在", "旅行", "法國", "舅舅"], answer: "住在" },
+                { question: "我外公外婆 ______ 住在臺北，現在住在臺南。", zhuyin: "ㄅㄣˇ ㄌㄞˊ", pinyin: "běn lái", options: ["本來", "一次", "阿姨", "看"], answer: "本來" },
+                { question: "外公和外婆現在不工作了，他們已經 ______ 了。", zhuyin: "ㄊㄨㄟˋ ㄒㄧㄡ", pinyin: "tuì xiū", options: ["退休", "住在", "臺北", "暑假"], answer: "退休" },
+                { question: "心美每年都會去臺灣看外公外婆 ______。", zhuyin: "ㄧˊ ㄘˋ", pinyin: "yí cì", options: ["一次", "法國", "旅行", "舅舅"], answer: "一次" },
+                { question: "我的外公外婆很喜歡去不同的地方 ______。", zhuyin: "ㄌㄩˇ ㄒㄧㄥˊ", pinyin: "lǚ xíng", options: ["旅行", "臺南", "本來", "看"], answer: "旅行" },
+                { question: "媽媽的兄弟，我要叫他 ______。", zhuyin: "ㄐㄧㄡˋ ㄐㄧㄡ˙", pinyin: "jiù jiu", options: ["舅舅", "暑假", "紐約", "一次"], answer: "舅舅" },
+                { question: "媽媽的姐妹，我要叫她 ______。", zhuyin: "ㄚ ㄧˊ", pinyin: "ā yí", options: ["阿姨", "臺北", "退休", "旅行"], answer: "阿姨" },
+                { question: "外公外婆本來住在臺灣的 ______，那裡有101大樓。", zhuyin: "ㄊㄞˊ ㄅㄟˇ", pinyin: "tái běi", options: ["臺北", "本來", "看", "舅舅"], answer: "臺北" },
+                { question: "退休以後，外公外婆跟舅舅一起住在南部的 ______。", zhuyin: "ㄊㄞˊ ㄋㄢˊ", pinyin: "tái nán", options: ["臺南", "一次", "暑假", "退休"], answer: "臺南" },
+                { question: "張莉的外公外婆不住在臺灣，他們住在美國的 ______。", zhuyin: "ㄋㄧㄡˇ ㄩㄝ", pinyin: "niǔ yuē", options: ["紐約", "看", "本來", "住在"], answer: "紐約" },
+                { question: "心美的外公外婆常常去 ______ 看心美的阿姨。", zhuyin: "ㄈㄚˇ ㄍㄨㄛˊ", pinyin: "fǎ guó", options: ["法國", "一次", "旅行", "退休"], answer: "法國" }
+            ]},
+            { levelName: "第十一課 (L11)", title: "去動物園 (Going to the Zoo)", monster: { name: {zh: "巨獸大象", en: "Beast Elephant"}, icon: "fa-hippo", color: "text-stone-400" }, questions: [
+                { question: "下個星期五，學校要帶我們去 ______ 玩。", zhuyin: "ㄉㄨㄥˋ ㄨˋ ㄩㄢˊ", pinyin: "dòng wù yuán", options: ["動物園", "不但", "胖胖的", "這一次"], answer: "動物園" },
+                { question: "在那裡，我們可以看到有長長鼻子的 ______。", zhuyin: "ㄉㄚˋ ㄒㄧㄤˋ", pinyin: "dà xiàng", options: ["大象", "真", "希望", "還"], answer: "大象" },
+                { question: "哥哥說他最喜歡的動物是 ______。", zhuyin: "ㄌㄠˇ ㄏㄨˇ", pinyin: "lǎo hǔ", options: ["老虎", "看到", "不但", "脖子"], answer: "老虎" },
+                { question: "上一次去沒看到熊貓，我 ______ 這一次可以看到。", zhuyin: "ㄒㄧ ㄨㄤˋ", pinyin: "xī wàng", options: ["希望", "猴子", "脖子", "企鵝"], answer: "希望" },
+                { question: "心美希望 ______ 去動物園可以看熊貓和猴子。", zhuyin: "ㄓㄜˋ ㄧˊ ㄘˋ", pinyin: "zhè yí cì", options: ["這一次", "胖胖的", "老虎", "真"], answer: "這一次" },
+                { question: "太好了！你可以 ______ 你喜歡的大象和老虎。", zhuyin: "ㄎㄢˋ ㄉㄠˋ", pinyin: "kàn dào", options: ["看到", "動物園", "不但", "脖子"], answer: "看到" },
+                { question: "______ 的身體黑黑白白的，非常喜歡吃竹子。", zhuyin: "ㄒㄩㄥˊ ㄇㄠ", pinyin: "xióng māo", options: ["熊貓", "希望", "這一次", "還"], answer: "熊貓" },
+                { question: "樹上有一隻小 ______，牠喜歡吃香蕉。", zhuyin: "ㄏㄡˊ ㄗ˙", pinyin: "hóu zi", options: ["猴子", "真", "看到", "長長的"], answer: "猴子" },
+                { question: "動物園現在 ______ 有熊貓，還有企鵝。", zhuyin: "ㄅㄨˊ ㄉㄢˋ", pinyin: "bú dàn", options: ["不但", "脖子", "大象", "胖胖的"], answer: "不但" },
+                { question: "小中不但喜歡畫兔子，______ 喜歡畫猴子。", zhuyin: "ㄏㄞˊ", pinyin: "hái", options: ["還", "動物園", "看到", "企鵝"], answer: "還" },
+                { question: "______ 住在很冷的地方，走起路來很可愛。", zhuyin: "ㄑㄧˋ ㄜˊ", pinyin: "qì é", options: ["企鵝", "希望", "不但", "這一次"], answer: "企鵝" },
+                { question: "我覺得熊貓的身體 ______，非常可愛！", zhuyin: "ㄆㄤˋ ㄆㄤˋ ㄉㄜ˙", pinyin: "pàng pàng de", options: ["胖胖的", "長長的", "紅紅的", "黃黃的"], answer: "胖胖的" },
+                { question: "妹妹穿上這件紅色的新衣服，______ 漂亮！", zhuyin: "ㄓㄣ", pinyin: "zhēn", options: ["真", "有", "沒", "大"], answer: "真" },
+                { question: "心美的哥哥最喜歡的動物是 ______。", zhuyin: "ㄔㄤˊ ㄐㄧㄥˇ ㄌㄨˋ", pinyin: "cháng jǐng lù", options: ["長頸鹿", "自行車", "蛋炒飯", "指南針"], answer: "長頸鹿" },
+                { question: "長頸鹿的 ______ 很長，可以吃到很高的樹葉。", zhuyin: "ㄅㄛˊ ㄗ˙", pinyin: "bó zi", options: ["脖子", "葉子", "車子", "本子"], answer: "脖子" },
+                { question: "長頸鹿的脖子 ______，真可愛。", zhuyin: "ㄔㄤˊ ㄔㄤˊ ㄉㄜ˙", pinyin: "cháng cháng de", options: ["長長的", "大大的", "胖胖的", "小小的"], answer: "長長的" }
+            ]},
+            { levelName: "第十二課 (L12)", title: "打網路電話 (Making an Internet Call)", monster: { name: {zh: "年獸魔王", en: "Nian Boss"}, icon: "fa-chess-rook", color: "text-red-600" }, questions: [
+                { question: "爸爸現在要用 ______ 給姑姑打電話。", zhuyin: "ㄨㄤˇ ㄌㄨˋ", pinyin: "wǎng lù", options: ["網路", "長高", "看起來", "瘦"], answer: "網路" },
+                { question: "媽媽現在要用手機給外婆打 ______。", zhuyin: "ㄉㄧㄢˋ ㄏㄨㄚˋ", pinyin: "diàn huà", options: ["電話", "有意思", "很久", "上課"], answer: "電話" },
+                { question: "網路電話可以看到姑姑的 ______，快一點過來。", zhuyin: "ㄧㄥˇ ㄒㄧㄤˋ", pinyin: "yǐng xiàng", options: ["影像", "好好", "說話", "寫"], answer: "影像" },
+                { question: "大文 ______ 沒跟姑姑說話了，他很想姑姑。", zhuyin: "ㄏㄣˇ ㄐㄧㄡˇ", pinyin: "hěn jiǔ", options: ["很久", "電話", "網路", "信"], answer: "很久" },
+                { question: "老師說，吃飯的時候請不要一直 ______。", zhuyin: "ㄕㄨㄛ ㄏㄨㄚˋ", pinyin: "shuō huà", options: ["說話", "影像", "沒問題", "瘦"], answer: "說話" },
+                { question: "長頸鹿的脖子長長的，______ 很可愛。", zhuyin: "ㄎㄢˋ ㄑㄧˇ ㄌㄞˊ", pinyin: "kàn qǐ lái", options: ["看起來", "網路", "寫", "電話"], answer: "看起來" },
+                { question: "姑姑覺得大文變 ______ 了。", zhuyin: "ㄕㄡˋ", pinyin: "shòu", options: ["瘦", "很久", "有意思", "上課"], answer: "瘦" },
+                { question: "大文說他沒瘦，他是 ______ 了。", zhuyin: "ㄓㄤˇ ㄍㄠ", pinyin: "zhǎng gāo", options: ["長高", "電話", "信", "影像"], answer: "長高" },
+                { question: "文文現在也跟你一起去中文學校 ______ 嗎？", zhuyin: "ㄕㄤˋ ㄎㄜˋ", pinyin: "shàng kè", options: ["上課", "沒問題", "很久", "看起來"], answer: "上課" },
+                { question: "大文覺得上華語課很 ______，他非常喜歡。", zhuyin: "ㄧㄡˇ ㄧˋ ㄙ˙", pinyin: "yǒu yì si", options: ["有意思", "寫", "瘦", "網路"], answer: "有意思" },
+                { question: "姑姑要大文 ______ 學中文。", zhuyin: "ㄏㄠˇ ㄏㄠˇ", pinyin: "hǎo hǎo", options: ["好好", "電話", "影像", "很久"], answer: "好好" },
+                { question: "爺爺說：「你好好學華語，以後可以用網路給我 ______ 信。」", zhuyin: "ㄒㄧㄝˇ", pinyin: "xiě", options: ["寫", "長高", "瘦", "有意思"], answer: "寫" },
+                { question: "我收到好朋友寫給我的 ______，覺得很高興。", zhuyin: "ㄒㄧㄣˋ", pinyin: "xìn", options: ["信", "上課", "看起來", "沒問題"], answer: "信" },
+                { question: "大文對姑姑說：「______，我一定會好好學中文。」", zhuyin: "ㄇㄟˊ ㄨㄣˋ ㄊㄧˊ", pinyin: "méi wèn tí", options: ["沒問題", "網路", "很久", "寫"], answer: "沒問題" }
+            ]}
+        ];
+
+        window.toggleFullscreen = function() {
+            const icon = document.getElementById('fullscreen-icon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+                if(icon) { icon.classList.remove('fa-expand'); icon.classList.add('fa-compress'); }
+            } else {
+                document.exitFullscreen();
+                if(icon) { icon.classList.remove('fa-compress'); icon.classList.add('fa-expand'); }
+            }
+        };
+
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // 建立一個產生「樂器敲擊聲」的輔助函數，讓聲音有自然的衰減，不會像電子蜂鳴器
+        function playTone(freq, type, startTime, duration, vol, endFreq = null) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type; // 'sine' (平滑), 'triangle' (柔和)
+            
+            osc.frequency.setValueAtTime(freq, startTime);
+            // 如果有設定結束頻率，就讓音調平滑滑落 (適用於答錯的「咚」聲)
+            if (endFreq) {
+                osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
+            }
+
+            // 音量包絡線 (Envelope)：快速響起，自然指數衰弱 (類似木琴或豎琴)
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        function playGameSound(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                // 答對：清脆的木琴/鋼琴聲 (雙音和弦，像獲得金幣)
+                playTone(783.99, 'sine', now, 0.4, 0.3); // G5
+                playTone(1046.50, 'sine', now + 0.1, 0.6, 0.3); // C6
+            } else if (type === 'wrong') {
+                // 答錯：低沉的「咚」聲，音調快速下滑 (不再刺耳)
+                playTone(300, 'sine', now, 0.3, 0.5, 100); 
+            } else if (type === 'crit') {
+                // 暴擊：閃亮的水晶音階
+                [1046.50, 1318.51, 1567.98, 2093.00].forEach((freq, i) => {
+                    playTone(freq, 'sine', now + i * 0.06, 0.5, 0.2);
+                });
+            } else if (type === 'win') {
+                // 勝利：輕快的和弦勝利提示
+                [{f: 523.25, t: 0, d: 0.3}, {f: 659.25, t: 0.15, d: 0.3}, {f: 783.99, t: 0.3, d: 0.3}, {f: 1046.50, t: 0.45, d: 1.0}].forEach(n => {
+                    playTone(n.f, 'sine', now + n.t, n.d, 0.3);
+                });
+            } else if (type === 'lose') {
+                // 失敗：低音緩慢下行嘆息聲
+                [{f: 349.23, t: 0, d: 0.4}, {f: 329.63, t: 0.3, d: 0.4}, {f: 311.13, t: 0.6, d: 0.4}, {f: 293.66, t: 0.9, d: 1.2}].forEach(n => {
+                    playTone(n.f, 'triangle', now + n.t, n.d, 0.4);
+                });
+            }
+        }
+
+        window.selectStyle = function(style) {
+            window.tempStyle = style;
+            const swordsmanBtn = document.getElementById('style-swordsman-btn');
+            const mageBtn = document.getElementById('style-mage-btn');
+            
+            if (style === 'swordsman') {
+                swordsmanBtn.className = "flex-1 py-3 rounded-xl border-2 font-black transition-all bg-blue-900/50 border-blue-400 text-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.5)]";
+                mageBtn.className = "flex-1 py-3 rounded-xl border-2 font-black transition-all bg-slate-800 border-slate-600 text-slate-400 hover:border-pink-400 hover:text-pink-200";
+            } else {
+                mageBtn.className = "flex-1 py-3 rounded-xl border-2 font-black transition-all bg-pink-900/50 border-pink-400 text-pink-200 shadow-[0_0_10px_rgba(236,72,153,0.5)]";
+                swordsmanBtn.className = "flex-1 py-3 rounded-xl border-2 font-black transition-all bg-slate-800 border-slate-600 text-slate-400 hover:border-blue-400 hover:text-blue-200";
+            }
+        };
+
+        window.openNameModal = function(force = false) {
+            window.isNameForced = force;
+            document.getElementById('name-input').value = window.playerStats.name;
+            document.getElementById('name-warning').classList.add('opacity-0');
+            document.getElementById('cancel-name-btn').style.display = force ? 'none' : 'block';
+            window.selectStyle(window.playerStats.style || 'swordsman');
+            document.getElementById('name-modal').classList.remove('hidden');
+            document.getElementById('name-modal').classList.add('flex');
+            document.getElementById('name-input').focus();
+        };
+
+        window.closeNameModal = function() {
+            if (window.isNameForced && !window.playerStats.name) {
+                document.getElementById('name-warning').innerText = window.t('nameWarning');
+                document.getElementById('name-warning').classList.remove('opacity-0');
+                document.getElementById('name-input').focus();
+                return;
+            }
+            document.getElementById('name-modal').classList.add('hidden');
+            document.getElementById('name-modal').classList.remove('flex');
+        };
+
+        window.savePlayerName = function() {
+            const newName = document.getElementById('name-input').value.trim();
+            if (newName) {
+                window.playerStats.name = newName;
+                window.playerStats.style = window.tempStyle;
+                window.saveStats();
+                window.isNameForced = false;
+                document.getElementById('name-warning').classList.add('opacity-0');
+                window.closeNameModal();
+            } else {
+                document.getElementById('name-warning').innerText = window.t('nameWarning');
+                document.getElementById('name-warning').classList.remove('opacity-0');
+                document.getElementById('name-input').focus();
+            }
+        };
+
+        window.openTreasureModal = function(treasureId) {
+            const treasure = window.treasuresDB.find(t => t.id === treasureId);
+            const tLevel = window.playerStats.treasures[treasureId] || 0;
+            if (treasure && tLevel > 0) {
+                const totalBonus = treasure.effectVal * tLevel;
+                const modalTreasureIcon = document.getElementById('modal-treasure-icon');
+                modalTreasureIcon.className = `text-7xl mb-6 mx-auto w-32 h-32 flex items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-slate-600 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5),0_10px_20px_rgba(0,0,0,0.3)] relative treasure-shine ${treasure.color}`;
+                modalTreasureIcon.innerHTML = `<i class="fa-solid ${treasure.icon}"></i><span class="absolute -bottom-3 -right-3 bg-red-600 text-white text-lg font-black px-3 py-1 rounded-xl border-2 border-slate-900 drop-shadow-md transform scale-90">Lv.${tLevel}</span>`;
+                document.getElementById('modal-treasure-name').innerText = treasure.name[window.currentLang];
+                const descStr = treasure.desc[window.currentLang].replace('{v}', totalBonus);
+                document.getElementById('modal-treasure-desc').innerText = window.t('treasureEffect', {desc: descStr});
+                document.getElementById('treasure-modal').classList.remove('hidden');
+                document.getElementById('treasure-modal').classList.add('flex');
+            }
+        };
+
+        window.closeTreasureModal = function() {
+            document.getElementById('treasure-modal').classList.add('hidden');
+            document.getElementById('treasure-modal').classList.remove('flex');
+        };
+
+        window.openLeaderboard = function() {
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+            document.getElementById('leaderboard-modal').classList.add('flex');
+            if (typeof window.renderLeaderboard === 'function') {
+                window.renderLeaderboard();
+            }
+        };
+
+        window.closeLeaderboard = function() {
+            document.getElementById('leaderboard-modal').classList.add('hidden');
+            document.getElementById('leaderboard-modal').classList.remove('flex');
+        };
+
+        window.updateMenuStatsUI = function() {
+            document.getElementById('menu-player-name').innerText = window.playerStats.name || window.t('defaultName');
+            document.getElementById('menu-level-text').innerText = window.playerStats.level;
+            
+            const style = window.playerStats.style || 'swordsman';
+            document.getElementById('menu-avatar-container').innerHTML = `
+                <svg viewBox="0 0 100 100" class="w-16 h-16 drop-shadow-md mt-2">
+                    ${window.heroSVGContents[style]}
+                </svg>
+            `;
+            
+            applyTreasureEffects();
+            document.getElementById('menu-hp-text').innerText = window.playerMaxHp;
+
+            document.getElementById('menu-exp-text').innerText = `${window.playerStats.exp} / ${window.playerStats.maxExp}`;
+            let expPercent = (window.playerStats.exp / window.playerStats.maxExp) * 100;
+            document.getElementById('menu-exp-bar').style.width = `${expPercent}%`;
+
+            const menuTreasuresContainer = document.getElementById('menu-treasures-container');
+            menuTreasuresContainer.innerHTML = '';
+            const tKeys = Object.keys(window.playerStats.treasures);
+            if (tKeys.length === 0) {
+                menuTreasuresContainer.innerHTML = `<span class="text-slate-500 text-sm italic mt-2">${window.t('noTreasure')}</span>`;
+            } else {
+                window.treasuresDB.forEach(treasure => {
+                    const tLevel = window.playerStats.treasures[treasure.id];
+                    if (tLevel && tLevel > 0) {
+                        const tIcon = document.createElement('div');
+                        // 針對手機版縮小寶物圖示，並加入 shrink-0 防止擠壓變形
+                        tIcon.className = `cursor-pointer w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600 flex items-center justify-center text-xl md:text-2xl hover:scale-110 transition-transform ${treasure.color} shadow-md relative group shrink-0`;
+                        tIcon.innerHTML = `
+                            <i class="fa-solid ${treasure.icon} drop-shadow-md"></i>
+                            <span class="absolute -bottom-1.5 -right-1.5 bg-gradient-to-br from-red-500 to-red-700 text-white text-[9px] md:text-[10px] font-black px-1.5 py-0.5 rounded border border-slate-800 drop-shadow transform scale-75 origin-bottom-right">Lv.${tLevel}</span>
+                        `;
+                        tIcon.onclick = () => window.openTreasureModal(treasure.id);
+                        menuTreasuresContainer.appendChild(tIcon);
+                    }
+                });
+            }
+        };
+
+        window.showMenu = function() {
+            hideOverlay();
+            document.getElementById('game-container').classList.add('hidden'); 
+            window.selectedLevels = []; 
+            window.currentCombo = 0; 
+            
+            window.updateMenuStatsUI();
+            window.updateStartButton();
+            
+            const levelButtonsContainer = document.getElementById('level-buttons-container');
+            levelButtonsContainer.innerHTML = '';
+            window.levelsData.forEach((level, index) => {
+                const tDef = window.treasuresDB.find(t => t.levelIdx === index);
+                const isCleared = tDef && window.playerStats.treasures[tDef.id] > 0;
+                
+                // 若已過關，給予金色邊框與標籤提示
+                const baseBorder = isCleared ? 'border-yellow-500/50 hover:border-yellow-400' : 'border-slate-600 hover:border-slate-400';
+                const clearBadge = isCleared ? `<div class="absolute top-0 right-0 bg-gradient-to-l from-yellow-500 to-orange-500 text-white text-[10px] md:text-xs px-2 py-0.5 rounded-bl-lg z-20 font-black shadow-sm flex items-center"><i class="fa-solid fa-star text-[8px] md:text-[10px] mr-1"></i>${window.t('cleared')}</div>` : '';
+
+                const card = document.createElement('div');
+                card.id = `lesson-card-${index}`;
+                card.className = `relative cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center justify-between shadow-md hover:shadow-xl group overflow-hidden bg-slate-800/80 ${baseBorder}`;
+                
+                card.innerHTML = `
+                    ${clearBadge}
+                    <div class="flex items-center min-w-0 pr-2 z-10">
+                        <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-900 rounded-full border border-slate-700 group-hover:scale-110 transition-transform shadow-inner">
+                            <i class="fa-solid ${level.monster.icon} text-2xl ${level.monster.color} drop-shadow-md"></i>
+                        </div>
+                        <div class="flex flex-col ml-4 min-w-0">
+                            <span class="text-lg font-black text-white truncate drop-shadow-sm">${level.levelName}</span>
+                            <span class="text-xs font-bold text-slate-400 truncate lesson-title-trans">${level.title}</span>
+                        </div>
+                    </div>
+                    <div class="checkbox-ui w-8 h-8 rounded-lg border-2 border-slate-500 flex items-center justify-center bg-slate-900 transition-colors flex-shrink-0 shadow-inner z-10"></div>
+                    <div class="bg-glow absolute inset-0 bg-blue-500/0 transition-colors duration-300"></div>
+                `;
+                
+                card.onclick = () => { initAudio(); window.toggleLesson(index); };
+                levelButtonsContainer.appendChild(card);
+            });
+
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('menu-screen').classList.add('flex');
+        };
+
+        window.toggleLesson = function(index) {
+            const idx = window.selectedLevels.indexOf(index);
+
+            // 限制最多只能選擇 4 關
+            if (idx === -1 && window.selectedLevels.length >= 4) {
+                const promptEl = document.getElementById('select-prompt-text');
+                if (promptEl) {
+                    const oldText = promptEl.innerText;
+                    promptEl.innerText = window.t('maxSelectWarn');
+                    promptEl.classList.add('text-red-400', 'shake-animation');
+                    setTimeout(() => {
+                        promptEl.innerText = oldText;
+                        promptEl.classList.remove('text-red-400', 'shake-animation');
+                    }, 1500);
+                }
+                return;
+            }
+
+            const card = document.getElementById(`lesson-card-${index}`);
+            const checkbox = card.querySelector('.checkbox-ui');
+            const bgGlow = card.querySelector('.bg-glow');
+            
+            // 動態判斷過關狀態，以套用正確的邊框還原
+            const tDef = window.treasuresDB.find(t => t.levelIdx === index);
+            const isCleared = tDef && window.playerStats.treasures[tDef.id] > 0;
+            const baseBorderClasses = isCleared ? ['border-yellow-500/50', 'hover:border-yellow-400'] : ['border-slate-600', 'hover:border-slate-400'];
+            
+            if (idx > -1) {
+                window.selectedLevels.splice(idx, 1);
+                card.classList.remove('border-blue-400', 'scale-[1.02]', 'shadow-[0_0_15px_rgba(59,130,246,0.3)]');
+                card.classList.add(...baseBorderClasses);
+                bgGlow.classList.remove('bg-blue-500/20');
+                bgGlow.classList.add('bg-blue-500/0');
+                checkbox.innerHTML = '';
+                checkbox.classList.remove('bg-gradient-to-br', 'from-blue-400', 'to-blue-600', 'border-blue-300');
+            } else {
+                window.selectedLevels.push(index);
+                card.classList.remove(...baseBorderClasses);
+                card.classList.add('border-blue-400', 'scale-[1.02]', 'shadow-[0_0_15px_rgba(59,130,246,0.3)]');
+                bgGlow.classList.remove('bg-blue-500/0');
+                bgGlow.classList.add('bg-blue-500/20');
+                checkbox.innerHTML = '<i class="fa-solid fa-check text-white text-lg drop-shadow-sm"></i>';
+                checkbox.classList.add('bg-gradient-to-br', 'from-blue-400', 'to-blue-600', 'border-blue-300');
+            }
+            window.updateStartButton();
+        };
+
+        window.updateStartButton = function() {
+            const startGameBtn = document.getElementById('start-game-btn');
+            if (window.selectedLevels.length === 0) {
+                startGameBtn.disabled = true;
+                startGameBtn.innerHTML = window.t('selectMinOne');
+                startGameBtn.className = "w-full btn-3d px-8 py-4 bg-slate-800 text-slate-500 font-black rounded-2xl text-xl border-b-[6px] border-slate-900 cursor-not-allowed transition-all opacity-80";
+            } else if (window.selectedLevels.length === 1) {
+                startGameBtn.disabled = false;
+                startGameBtn.innerHTML = window.t('startSingle');
+                startGameBtn.className = "w-full btn-3d px-8 py-4 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-black rounded-2xl text-2xl border-b-[6px] border-blue-900 shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all transform hover:-translate-y-1";
+            } else {
+                startGameBtn.disabled = false;
+                startGameBtn.innerHTML = `${window.t('startMixed')} <span class="text-lg font-bold ml-2 text-yellow-200">${window.t('selectedCount', {n: window.selectedLevels.length})}</span>`;
+                startGameBtn.className = "w-full btn-3d px-8 py-4 bg-gradient-to-b from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-black rounded-2xl text-2xl border-b-[6px] border-orange-800 shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all transform hover:-translate-y-1";
+            }
+        };
+
+        function applyTreasureEffects() {
+            window.playerMaxHp = 200;
+            window.currentPlayerDamage = 10;
+            window.currentMonsterDamage = 15;
+            window.currentHealAmount = 5;
+            window.currentExpMultiplier = 1.0;
+
+            for (const [tId, tLevel] of Object.entries(window.playerStats.treasures)) {
+                const treasure = window.treasuresDB.find(t => t.id === tId);
+                if (treasure && tLevel > 0) {
+                    const totalBonus = treasure.effectVal * tLevel;
+                    if (treasure.effectType === 'hp') window.playerMaxHp += totalBonus;
+                    else if (treasure.effectType === 'atk') window.currentPlayerDamage += totalBonus;
+                    else if (treasure.effectType === 'def') window.currentMonsterDamage = Math.max(5, window.currentMonsterDamage - totalBonus);
+                    else if (treasure.effectType === 'heal') window.currentHealAmount += totalBonus;
+                    else if (treasure.effectType === 'exp') window.currentExpMultiplier += (totalBonus / 100);
+                }
+            }
+            document.getElementById('player-max-hp-text').innerText = window.playerMaxHp;
+            document.getElementById('in-game-level').innerText = window.playerStats.level;
+        }
+
+        window.startSelected = function() {
+            initAudio(); 
+            if (window.selectedLevels.length === 0) return;
+            window.isCustomMode = window.selectedLevels.length > 1;
+            applyTreasureEffects();
+            window.playerHp = window.playerMaxHp; 
+            document.getElementById('in-game-player-name').innerText = window.playerStats.name || window.t('defaultName'); 
+            window.currentCombo = 0; 
+            window.updateComboUI();
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('flex');
+            document.getElementById('game-container').classList.remove('hidden'); 
+            document.getElementById('game-container').classList.add('flex');
+            initBattle();
+        };
+
+        function initBattle() {
+            document.getElementById('overlay-menu-btn').style.display = 'block';
+            window.allPoolQuestions = [];
+
+            if (window.isCustomMode) {
+                window.selectedLevels.forEach(idx => { window.allPoolQuestions = window.allPoolQuestions.concat(window.levelsData[idx].questions); });
+                window.finalBoss = { name: {zh: "綜合大魔王", en: "Ultimate Boss"}, icon: "fa-skull-crossbones", color: "text-red-500" };
+            } else {
+                const levelData = window.levelsData[window.selectedLevels[0]];
+                window.allPoolQuestions = [...levelData.questions];
+                window.finalBoss = levelData.monster;
+            }
+
+            window.playerHp = window.playerMaxHp; 
+            window.availableQuestions = [...window.allPoolQuestions].sort(() => Math.random() - 0.5);
+
+            const style = window.playerStats.style || 'swordsman';
+            document.getElementById('hero-svg-container').innerHTML = window.heroSVGContents[style];
+
+            updateHpUI();
+            
+            const battleLog = document.getElementById('battle-log');
+            const battleLogText = document.getElementById('battle-log-text');
+            battleLog.classList.remove('opacity-0');
+            battleLogText.innerText = window.t('ready');
+            battleLogText.className = "inline-block px-8 py-3 rounded-full bg-slate-900/80 border-2 border-yellow-400 text-3xl md:text-5xl font-black text-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)] pop-text-anim";
+            
+            setTimeout(() => { 
+                battleLog.classList.add('opacity-0'); 
+                battleLogText.classList.remove('pop-text-anim');
+                startNextWave();
+            }, 1500);
+        }
+
+        // 新增波段(小怪)生成系統
+        function startNextWave() {
+            if (window.availableQuestions.length === 0) return;
+
+            // 每 4 題生成一隻小怪，若剩餘題目 <= 6，直接讓魔王出陣
+            let qsForThisWave = Math.min(4, window.availableQuestions.length);
+            if (window.availableQuestions.length <= 6) {
+                qsForThisWave = window.availableQuestions.length;
+            }
+
+            window.currentWaveQuestionsLeft = qsForThisWave;
+            // 【優化】：提高怪物基礎血量，搭配後續的智能鎖血機制
+            window.monsterMaxHp = qsForThisWave * Math.floor(window.currentPlayerDamage * 1.6);
+            window.monsterHp = window.monsterMaxHp;
+            window.isBossWave = (qsForThisWave === window.availableQuestions.length);
+
+            const battleLog = document.getElementById('battle-log');
+            const battleLogText = document.getElementById('battle-log-text');
+
+            if (window.isBossWave) {
+                window.currentMonster = window.finalBoss;
+                if (window.isCustomMode) {
+                    document.getElementById('level-display').innerText = window.t('mixedEncounter', {boss: window.currentMonster.name[window.currentLang]});
+                } else {
+                    const levelData = window.levelsData[window.selectedLevels[0]];
+                    document.getElementById('level-display').innerText = window.t('singleEncounter', {level: levelData.levelName, boss: window.currentMonster.name[window.currentLang]});
+                }
+                
+                // 魔王出現震撼提示
+                battleLog.classList.remove('opacity-0');
+                battleLogText.innerText = window.t('bossAppear');
+                battleLogText.className = "inline-block px-8 py-3 rounded-full bg-red-900/90 border-2 border-red-500 text-3xl md:text-5xl font-black text-red-400 shadow-[0_0_40px_rgba(239,68,68,0.8)] pop-text-anim";
+                setTimeout(() => { battleLog.classList.add('opacity-0'); battleLogText.classList.remove('pop-text-anim'); }, 1500);
+
+            } else {
+                // 隨機小怪出現
+                window.currentMonster = window.smallMonstersDB[Math.floor(Math.random() * window.smallMonstersDB.length)];
+                document.getElementById('level-display').innerText = window.t('ready'); 
+            }
+
+            document.getElementById('monster-name').innerText = window.currentMonster.name[window.currentLang];
+            const monsterSprite = document.getElementById('monster-sprite');
+            monsterSprite.innerHTML = `<i class="fa-solid ${window.currentMonster.icon} relative z-10"></i>`;
+            
+            // 魔王與小怪的尺寸差異
+            let sizeClass = window.isBossWave ? "text-[6rem] md:text-[8rem]" : "text-[5rem] md:text-[6rem]";
+            monsterSprite.className = `${sizeClass} mb-6 transition-transform drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] ${window.currentMonster.color} relative`;
+
+            updateHpUI();
+            loadNextQuestion();
+        }
+
+        window.showHintAction = function() {
+            initAudio(); 
+            document.getElementById('pinyin-btn').classList.add('hidden');
+            document.getElementById('pinyin-text').classList.remove('hidden');
+        };
+
+        function loadNextQuestion() {
+            if (window.availableQuestions.length === 0) return;
+
+            window.currentQ = window.availableQuestions.pop();
+            document.getElementById('question-text').innerText = window.currentQ.question;
+            
+            const pinyinText = document.getElementById('pinyin-text');
+            pinyinText.innerHTML = `<span class="text-3xl text-yellow-300 mr-3 drop-shadow-md">${window.currentQ.zhuyin}</span> <span class="text-xl text-slate-300">${window.currentQ.pinyin}</span>`;
+            pinyinText.classList.add('hidden');
+            
+            const pinyinBtn = document.getElementById('pinyin-btn');
+            pinyinBtn.classList.remove('hidden');
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            const shuffledOptions = [...window.currentQ.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full py-5 px-6 bg-gradient-to-b from-slate-700 to-slate-800 hover:from-blue-600 hover:to-blue-800 text-white font-black rounded-2xl shadow-lg border-b-[5px] border-slate-900 hover:border-blue-900 active:border-b-0 active:translate-y-[5px] transition-all text-xl md:text-2xl ring-1 ring-slate-600 hover:ring-blue-400';
+                btn.innerText = option;
+                btn.onclick = () => {
+                    window.handleAnswer(option === window.currentQ.answer, btn);
+                };
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        window.handleAnswer = function(isCorrect, clickedBtn) {
+            initAudio(); 
+            if ('speechSynthesis' in window) {
+                const utterThis = new SpeechSynthesisUtterance(clickedBtn.innerText);
+                utterThis.lang = 'zh-TW'; utterThis.rate = 0.85; 
+                window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterThis);
+            }
+
+            const optionsContainer = document.getElementById('options-container');
+            const allBtns = optionsContainer.querySelectorAll('button');
+            allBtns.forEach(btn => btn.disabled = true);
+
+            const battleLog = document.getElementById('battle-log');
+            const battleLogText = document.getElementById('battle-log-text');
+            battleLog.classList.remove('opacity-0');
+            battleLogText.classList.remove('pop-text-anim');
+            void battleLogText.offsetWidth; 
+
+            if (isCorrect) {
+                window.currentCombo++;
+                window.currentWaveQuestionsLeft--; // 當前波段剩餘題目減少
+                window.updateComboUI();
+
+                let comboMultiplier = Math.min(1 + (window.currentCombo * 0.2), 2.0);
+                let isCrit = Math.random() < 0.2;
+                let finalDmg = Math.floor(window.currentPlayerDamage * (isCrit ? 2 : 1) * comboMultiplier);
+                
+                // 【優化】：智能鎖血與斬殺機制，解決血量與扣分不符的違和感
+                if (window.currentWaveQuestionsLeft === 0) {
+                    // 最後一題：必定斬殺。若算出來的傷害不夠，自動補足並轉為爆擊特效
+                    if (finalDmg < window.monsterHp) {
+                        finalDmg = window.monsterHp;
+                        isCrit = true; 
+                    }
+                    window.monsterHp = 0;
+                } else {
+                    window.monsterHp -= finalDmg;
+                    // 非最後一題：如果傷害太高提早把怪打殘，保留「剩餘題數」的底線血量，讓後面的攻擊依然有扣血的視覺回饋
+                    let minHpLine = window.currentWaveQuestionsLeft * Math.floor(window.currentPlayerDamage * 0.8);
+                    if (window.monsterHp < minHpLine) {
+                        window.monsterHp = minHpLine;
+                    }
+                }
+
+                const monsterSprite = document.getElementById('monster-sprite');
+                if (isCrit) {
+                    playGameSound('crit');
+                    monsterSprite.style.filter = "brightness(1.5) drop-shadow(0 0 20px rgba(250, 204, 21, 0.8))";
+                    setTimeout(() => monsterSprite.style.filter = "", 300);
+                } else {
+                    playGameSound('correct'); 
+                }
+
+                clickedBtn.className = 'w-full py-5 px-6 bg-gradient-to-b from-green-500 to-green-700 text-white font-black rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.5)] border-b-[5px] border-green-900 text-xl md:text-2xl transform scale-[1.02] transition-all';
+                
+                battleLogText.innerText = isCrit ? window.t('critText') : "Nice!";
+                battleLogText.className = `inline-block px-8 py-3 rounded-full bg-slate-900/80 border-2 text-2xl md:text-4xl font-black pop-text-anim ${isCrit ? 'text-yellow-400 border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)]' : 'text-green-400 border-green-400 shadow-[0_0_30px_rgba(74,222,128,0.5)]'}`;
+                
+                const playerSprite = document.getElementById('player-sprite');
+                playerSprite.classList.add('attack-animation');
+                setTimeout(() => playerSprite.classList.remove('attack-animation'), 400);
+
+                setTimeout(() => {
+                    const monsterWrapper = document.getElementById('monster-wrapper');
+                    const playerWrapper = document.getElementById('player-wrapper');
+                    showFloatingText(monsterWrapper, `-${finalDmg}`, isCrit ? 'text-yellow-400 text-5xl md:text-6xl' : 'text-white text-4xl md:text-5xl');
+                    showFloatingText(playerWrapper, `+${window.currentHealAmount}`, 'text-green-400 text-3xl');
+
+                    window.playerHp = Math.min(window.playerMaxHp, window.playerHp + window.currentHealAmount);
+                    
+                    monsterSprite.classList.add('shake-animation');
+                    updateHpUI();
+                    setTimeout(() => monsterSprite.classList.remove('shake-animation'), 500);
+                    checkWinLoseState();
+                }, 300);
+
+            } else {
+                window.currentCombo = 0;
+                window.updateComboUI();
+                playGameSound('wrong'); 
+
+                clickedBtn.className = 'w-full py-5 px-6 bg-gradient-to-b from-red-600 to-red-800 text-white font-black rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.5)] border-b-[5px] border-red-950 text-xl md:text-2xl transform scale-[0.98] transition-all';
+                
+                battleLogText.innerText = "Miss!";
+                battleLogText.className = "inline-block px-8 py-3 rounded-full bg-slate-900/80 border-2 border-red-500 text-2xl md:text-4xl font-black text-red-400 shadow-[0_0_30px_rgba(248,113,113,0.5)] pop-text-anim";
+                
+                // 答錯的題目塞回題庫，一定要答對為止
+                window.availableQuestions.unshift(window.currentQ);
+                const monsterSprite = document.getElementById('monster-sprite');
+                monsterSprite.style.transform = "scale(1.2)";
+                setTimeout(() => monsterSprite.style.transform = "scale(1)", 300);
+
+                setTimeout(() => {
+                    const playerWrapper = document.getElementById('player-wrapper');
+                    showFloatingText(playerWrapper, `-${window.currentMonsterDamage}`, 'text-red-500 text-4xl md:text-5xl');
+
+                    window.playerHp -= window.currentMonsterDamage;
+                    if (window.playerHp < 0) window.playerHp = 0;
+                    const playerSprite = document.getElementById('player-sprite');
+                    playerSprite.classList.add('shake-animation');
+                    updateHpUI();
+                    setTimeout(() => playerSprite.classList.remove('shake-animation'), 500);
+                    checkWinLoseState();
+                }, 300);
+            }
+            
+            setTimeout(() => { battleLog.classList.add('opacity-0'); }, 1500);
+        };
+
+        function showFloatingText(targetWrapper, text, colorClasses) {
+            const floater = document.createElement('div');
+            floater.className = `absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none z-50 font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] ${colorClasses} damage-floater whitespace-nowrap`;
+            floater.innerHTML = text;
+            targetWrapper.appendChild(floater);
+            setTimeout(() => { if (floater.parentElement) floater.remove(); }, 1000);
+        }
+
+        window.updateComboUI = function() {
+            const comboDisplay = document.getElementById('combo-display');
+            if (window.currentCombo >= 2) {
+                comboDisplay.classList.remove('hidden');
+                document.getElementById('combo-count').innerText = window.currentCombo;
+                comboDisplay.classList.remove('combo-anim');
+                void comboDisplay.offsetWidth; 
+                comboDisplay.classList.add('combo-anim');
+            } else {
+                comboDisplay.classList.add('hidden');
+            }
+        };
+
+        function triggerVictoryRewards() {
+            let gainedExp = Math.floor(window.allPoolQuestions.length * 10 * window.currentExpMultiplier);
+            window.playerStats.exp += gainedExp;
+            
+            let levelUpStr = "";
+            while (window.playerStats.exp >= window.playerStats.maxExp) {
+                window.playerStats.exp -= window.playerStats.maxExp;
+                window.playerStats.level++;
+                window.playerStats.maxExp = Math.floor(window.playerStats.maxExp * 1.5); 
+                window.playerStats.baseMaxHp += 20; 
+                levelUpStr = window.t('levelUp');
+            }
+
+            document.getElementById('exp-gain-text').innerText = window.t('expGain', {exp: gainedExp}) + levelUpStr;
+            
+            let droppedTreasuresHTML = "";
+            window.selectedLevels.forEach(idx => {
+                const tDef = window.treasuresDB.find(t => t.levelIdx === idx);
+                if (tDef) {
+                    let currentLv = window.playerStats.treasures[tDef.id] || 0;
+                    window.playerStats.treasures[tDef.id] = currentLv + 1;
+                    let newLv = window.playerStats.treasures[tDef.id];
+
+                    droppedTreasuresHTML += `
+                        <div class="flex flex-col items-center mx-2 my-2 group">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-500 flex items-center justify-center text-4xl shadow-xl treasure-shine ${tDef.color} relative transition-transform transform group-hover:scale-110">
+                                <i class="fa-solid ${tDef.icon} drop-shadow-lg"></i>
+                                <span class="absolute -bottom-1 -right-1 bg-gradient-to-br from-red-500 to-red-700 text-white text-[12px] font-black px-1.5 py-0.5 rounded-lg border-2 border-slate-900 drop-shadow-md transform scale-75 origin-bottom-right">Lv.${newLv}</span>
+                            </div>
+                            <p class="text-white font-bold text-sm mt-3 w-24 truncate text-center drop-shadow-md" title="${tDef.name[window.currentLang]}">${tDef.name[window.currentLang]}</p>
+                        </div>
+                    `;
+                }
+            });
+
+            const treasureDropContainer = document.getElementById('treasure-drop-container');
+            if (droppedTreasuresHTML) {
+                document.getElementById('treasure-icons-wrapper').innerHTML = droppedTreasuresHTML;
+                treasureDropContainer.classList.remove('hidden');
+                treasureDropContainer.classList.add('flex');
+            } else {
+                treasureDropContainer.classList.add('hidden');
+                treasureDropContainer.classList.remove('flex');
+            }
+
+            document.getElementById('overlay-rewards').classList.remove('hidden');
+            window.saveStats(); 
+        }
+
+        function checkWinLoseState() {
+            setTimeout(() => {
+                const playerName = window.playerStats.name || window.t('defaultName');
+                
+                if (window.monsterHp === 0) {
+                    // 若是魔王波段，則徹底過關
+                    if (window.isBossWave) {
+                        playGameSound('win');
+                        if (typeof confetti === 'function') {
+                            confetti({ particleCount: 300, spread: 120, origin: { y: 0.4 }, zIndex: 1000, colors: ['#fbbf24', '#f87171', '#60a5fa', '#34d399'] });
+                        }
+                        
+                        triggerVictoryRewards();
+
+                        if (window.isCustomMode) {
+                            showOverlay(window.t('trainingComplete'), window.t('mixedSuccess', {name: playerName}), window.t('backMenuBtn'), () => { hideOverlay(); window.showMenu(); });
+                            document.getElementById('overlay-menu-btn').style.display = 'none';
+                        } else {
+                            showOverlay(window.t('perfectClear'), window.t('singleSuccess', {name: playerName, monster: window.currentMonster.name[window.currentLang]}), window.t('backMenuBtn'), () => { hideOverlay(); window.showMenu(); });
+                            document.getElementById('overlay-menu-btn').style.display = 'none'; 
+                        }
+                    } else {
+                        // 擊敗小怪，準備進入下一波
+                        playGameSound('crit'); // 用暴擊音效代表擊退小怪
+                        const monsterSprite = document.getElementById('monster-sprite');
+                        monsterSprite.style.transform = "scale(0) rotate(180deg)"; 
+                        monsterSprite.style.opacity = "0";
+                        monsterSprite.style.transition = "all 0.5s ease-in";
+
+                        setTimeout(() => {
+                            monsterSprite.style.transform = "scale(1) rotate(0deg)";
+                            monsterSprite.style.opacity = "1";
+                            monsterSprite.style.transition = "transform 0.3s";
+                            startNextWave();
+                        }, 600);
+                    }
+                } else if (window.playerHp === 0) {
+                    playGameSound('lose');
+                    document.getElementById('overlay-rewards').classList.add('hidden'); 
+                    showOverlay(window.t('fallen'), window.t('retryDesc', {name: playerName}), window.t('retryBtn'), () => {
+                        window.playerHp = window.playerMaxHp;
+                        window.currentCombo = 0;
+                        window.updateComboUI();
+                        hideOverlay();
+                        initBattle();
+                    });
+                } else {
+                    loadNextQuestion();
+                }
+            }, 1000); 
+        }
+
+        function updateHpUI() {
+            const playerHpPercent = (window.playerHp / window.playerMaxHp) * 100;
+            const playerHpBar = document.getElementById('player-hp-bar');
+            const playerSprite = document.getElementById('player-sprite');
+            playerHpBar.style.width = `${playerHpPercent}%`;
+            document.getElementById('player-hp-text').innerText = window.playerHp;
+            
+            if(playerHpPercent <= 25) {
+                playerHpBar.classList.replace('from-green-600', 'from-red-600');
+                playerHpBar.classList.replace('to-emerald-400', 'to-rose-500');
+                playerSprite.classList.add('danger-state');
+            } else {
+                playerHpBar.classList.replace('from-red-600', 'from-green-600');
+                playerHpBar.classList.replace('to-rose-500', 'to-emerald-400');
+                playerSprite.classList.remove('danger-state');
+            }
+
+            const monsterHpPercent = (window.monsterHp / window.monsterMaxHp) * 100;
+            document.getElementById('monster-hp-bar').style.width = `${monsterHpPercent}%`;
+            document.getElementById('monster-hp-text').innerText = window.monsterHp;
+            document.getElementById('monster-max-hp-text').innerText = window.monsterMaxHp;
+        }
+
+        function showOverlay(title, msg, btnText, action) {
+            const overlay = document.getElementById('overlay');
+            document.getElementById('overlay-title').innerText = title;
+            document.getElementById('overlay-message').innerText = msg;
+            document.getElementById('overlay-btn').innerText = btnText;
+            document.getElementById('overlay-btn').onclick = action;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            overlay.firstElementChild.classList.remove('scale-95', 'opacity-0');
+            overlay.firstElementChild.classList.add('scale-100', 'opacity-100');
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        }
+
+        window.onload = () => { 
+            window.updateAllLanguageUI(); 
+            if (typeof window.showMenu === 'function') {
+                window.showMenu(); 
+            }
+            if (!window.playerStats.name) {
+                window.openNameModal(true);
+            }
+        };
+
+        // ==========================================
+        // Firebase 邏輯與載入初始化 (使用動態 Import)
+        // ==========================================
+        (async function initFirebase() {
+            try {
+                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+                const { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                
+                const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'mandarin-rpg';
+                let firebaseConfig;
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else {
+                    firebaseConfig = {
+                      apiKey: "AIzaSyCZIA5n7zK6hsTmQff_3F8NFaYxV9fiGkc",
+                      authDomain: "mandarin-rpg.firebaseapp.com",
+                      projectId: "mandarin-rpg",
+                      storageBucket: "mandarin-rpg.firebasestorage.app",
+                      messagingSenderId: "937255567859",
+                      appId: "1:937255567859:web:0fece5a8518d9828f01286"
+                    };
+                }
+
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                
+                let unsubscribeLB = null;
+                let currentUser = null;
+
+                window.getCurrentUserId = () => currentUser ? currentUser.uid : null;
+
+                window.uploadScoreToFirebase = async function() {
+                    if (!currentUser || !db || !window.playerStats || !window.playerStats.name) return;
+                    try {
+                        const lbDocRef = doc(db, 'artifacts', canvasAppId, 'public', 'data', 'leaderboard', currentUser.uid);
+                        await setDoc(lbDocRef, {
+                            name: window.playerStats.name,
+                            level: window.playerStats.level,
+                            exp: window.playerStats.exp,
+                            timestamp: Date.now()
+                        });
+                    } catch (e) {
+                        console.error("上傳排行榜分數失敗:", e);
+                    }
+                };
+
+                const setupLeaderboardListener = function() {
+                    if (!currentUser || !db) return;
+                    if (unsubscribeLB) unsubscribeLB();
+                    
+                    const lbRef = collection(db, 'artifacts', canvasAppId, 'public', 'data', 'leaderboard');
+                    unsubscribeLB = onSnapshot(lbRef, (snapshot) => {
+                        let data = [];
+                        snapshot.forEach(docSnap => {
+                            data.push({ uid: docSnap.id, ...docSnap.data() });
+                        });
+                        data.sort((a, b) => {
+                            if (b.level !== a.level) return b.level - a.level;
+                            return b.exp - a.exp;
+                        });
+                        window.leaderboardData = data;
+                        
+                        if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
+                            window.renderLeaderboard();
+                        }
+                    }, (error) => {
+                        console.error("Leaderboard fetch error:", error);
+                        const loadEl = document.getElementById('leaderboard-loading');
+                        if(loadEl) {
+                            loadEl.style.display = 'block';
+                            loadEl.innerHTML = `<span class='text-red-400'>${window.t('permissionError')}</span>`;
+                        }
+                    });
+                };
+
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (authErr) {
+                        console.warn("登入失敗", authErr);
+                    }
+                };
+
+                await initAuth();
+                
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        setupLeaderboardListener();
+                        if (typeof window.uploadScoreToFirebase === 'function') {
+                            window.uploadScoreToFirebase();
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.warn("Firebase 初始化失敗。排行榜功能將以離線模式略過。", e);
+            }
+        })();
+
+        // 渲染排行榜表格
+        window.leaderboardData = [];
+        window.renderLeaderboard = function() {
+            const listEl = document.getElementById('leaderboard-list');
+            const loadEl = document.getElementById('leaderboard-loading');
+            
+            if (window.leaderboardData && window.leaderboardData.length === 0) {
+                listEl.innerHTML = '';
+                loadEl.style.display = 'block';
+                loadEl.innerText = window.t('emptyLeaderboard');
+                return;
+            }
+
+            loadEl.style.display = 'none';
+            let html = '';
+            
+            const topPlayers = window.leaderboardData ? window.leaderboardData.slice(0, 20) : [];
+            
+            topPlayers.forEach((player, idx) => {
+                const rank = idx + 1;
+                const myUid = typeof window.getCurrentUserId === 'function' ? window.getCurrentUserId() : null;
+                const isMe = myUid && player.uid === myUid;
+                
+                let rankVisual = `<span class="font-black text-slate-400">${rank}</span>`;
+                if (rank === 1) rankVisual = `<i class="fa-solid fa-crown text-yellow-400 text-xl drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"></i>`;
+                else if (rank === 2) rankVisual = `<i class="fa-solid fa-crown text-slate-300 text-lg"></i>`;
+                else if (rank === 3) rankVisual = `<i class="fa-solid fa-crown text-amber-600 text-lg"></i>`;
+
+                const rowClass = isMe 
+                    ? "bg-blue-900/60 border border-blue-500/50 shadow-[inset_0_0_10px_rgba(59,130,246,0.3)]" 
+                    : "border-b border-slate-700/50";
+                
+                const nameColor = isMe ? "text-blue-300" : "text-white";
+
+                html += `
+                    <tr class="${rowClass} transition-colors">
+                        <td class="p-3 text-center">${rankVisual}</td>
+                        <td class="p-3 font-bold ${nameColor} truncate max-w-[120px]">${player.name}</td>
+                        <td class="p-3 text-center font-black text-yellow-400">${player.level}</td>
+                        <td class="p-3 text-right pr-4 text-green-400 font-medium">${player.exp}</td>
+                    </tr>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        };
+    </script>
+</body>
+</html>
