@@ -386,7 +386,12 @@
             <div class="bg-slate-900/80 rounded-xl p-4 mb-8 border border-slate-700 shadow-inner">
                 <p id="modal-treasure-desc" class="text-green-400 font-bold text-lg leading-relaxed">說明</p>
             </div>
-            <button onclick="window.closeTreasureModal()" class="w-full btn-3d py-3 bg-gradient-to-b from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-black rounded-xl border-b-4 border-blue-950 text-lg shadow-lg" data-i18n="close">關閉</button>
+            <div class="flex flex-col gap-3 w-full">
+                <button onclick="window.downloadFlashcards()" class="w-full btn-3d py-3 bg-gradient-to-b from-green-500 to-green-700 hover:from-green-400 hover:to-green-600 text-white font-black rounded-xl border-b-4 border-green-900 text-lg shadow-lg flex items-center justify-center">
+                    <i class="fa-solid fa-file-pdf mr-2"></i><span data-i18n="downloadPdf">下載生詞卡</span>
+                </button>
+                <button onclick="window.closeTreasureModal()" class="w-full btn-3d py-3 bg-gradient-to-b from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-black rounded-xl border-b-4 border-blue-950 text-lg shadow-lg" data-i18n="close">關閉</button>
+            </div>
         </div>
     </div>
 
@@ -447,14 +452,14 @@
                 mixedSuccess: "太神啦！勇者 {name} 成功擊敗魔王！", perfectClear: "完美擊破！",
                 singleSuccess: "恭喜 {name} 打敗了 {monster}，生詞全數過關！",
                 expGain: "獲得 {exp} 點經驗值！", levelUp: " 🌟 等級提升！",
-                foundTreasure: "🎉 寶物獲得 / 升級！", close: "關閉", defaultName: "小勇者",
+                foundTreasure: "🎉 寶物獲得 / 升級！(點擊可下載生詞卡)", close: "關閉", defaultName: "小勇者",
                 selectedCount: "(已選 {n} 關)", treasureInfoTitle: "傳說寶物",
                 treasureEffect: "目前加成效果：\n{desc}", deleteConfirm: "確定要刪除所有遊戲進度、等級和寶物嗎？",
                 combo: "連擊", critText: "暴擊！", leaderboardTitle: "勇者名人堂", lbRank: "排名",
                 lbName: "勇者", lbLevel: "等級", lbExp: "經驗值", loadingData: "連線讀取中...",
                 emptyLeaderboard: "尚無紀錄，成為第一位上榜的勇者吧！",
-                permissionError: "讀取失敗！請至 Firebase Console 將 Firestore 規則設為 allow read, write: if true;",
-                cleared: "已過關", maxSelectWarn: "最多只能選擇 4 關進行綜合特訓喔！", bossAppear: "⚠️ 警告：魔王出現了！"
+                cleared: "已過關", maxSelectWarn: "最多只能選擇 4 關進行綜合特訓喔！", bossAppear: "⚠️ 警告：魔王出現了！",
+                downloadPdf: "下載生詞卡"
             },
             en: {
                 title: "Mandarin Hero RPG", ready: "Ready for Battle!", menuBtn: "Retreat", hero: "Hero",
@@ -474,14 +479,15 @@
                 mixedSuccess: "Amazing! Hero {name} cleared the training!", perfectClear: "Perfect Clear!",
                 singleSuccess: "Congrats {name}! You defeated {monster}!",
                 expGain: "Gained {exp} EXP!", levelUp: " 🌟 Level Up!",
-                foundTreasure: "🎉 Treasure Acquired/Upgraded!", close: "Close", defaultName: "Hero",
+                foundTreasure: "🎉 Treasure Acquired/Upgraded! (Click to download flashcards)", close: "Close", defaultName: "Hero",
                 selectedCount: "({n} selected)", treasureInfoTitle: "Treasure Info",
                 treasureEffect: "Current Bonus:\n{desc}", deleteConfirm: "Delete all progress, levels, and treasures?",
                 combo: "Combo", critText: "CRITICAL!", leaderboardTitle: "Hall of Fame", lbRank: "Rank",
                 lbName: "Hero", lbLevel: "Lv.", lbExp: "EXP", loadingData: "Loading...",
                 emptyLeaderboard: "No records yet. Be the first!",
                 permissionError: "Failed to load! Set Firestore rules to 'allow read, write: if true;' in Firebase Console.",
-                cleared: "CLEARED", maxSelectWarn: "You can select a maximum of 4 levels!", bossAppear: "⚠️ WARNING: Boss Approaching!"
+                cleared: "CLEARED", maxSelectWarn: "You can select a maximum of 4 levels!", bossAppear: "⚠️ WARNING: Boss Approaching!",
+                downloadPdf: "Download Cards"
             }
         };
 
@@ -509,6 +515,7 @@
         window.tempStyle = 'swordsman';
         window.currentWaveQuestionsLeft = 0; // 紀錄目前波段還剩幾題
         window.isBossWave = false; // 紀錄是否為魔王波段
+        window.currentTreasureId = null; // 紀錄當前開啟的寶物 ID，供下載字卡使用
 
         window.playerStats = JSON.parse(localStorage.getItem('chineseRpgStats')) || { name: "", level: 1, exp: 0, maxExp: 100, baseMaxHp: 200, treasures: {}, style: 'swordsman' };
         
@@ -640,6 +647,23 @@
             { id: 't11', levelIdx: 10, name: {zh: '萬獸圖鑑', en: 'Beast Guide'}, icon: 'fa-book-open', color: 'text-stone-300', effectType: 'atk', effectVal: 2, desc: {zh: '攻擊力 +{v}', en: 'Attack Power +{v}'} },
             { id: 't12', levelIdx: 11, name: {zh: '通訊耳機', en: 'Comms Headset'}, icon: 'fa-headset', color: 'text-gray-400', effectType: 'hp', effectVal: 15, desc: {zh: '最大生命值 +{v}', en: 'Max HP +{v}'} }
         ];
+
+        // 英文解釋字典 (供生詞卡使用)
+        window.vocabDict = {
+            "新": "new", "現在": "now, at the moment", "介紹": "to introduce", "自己": "oneself, one's own", "大家": "everyone", "今年": "this year", "跟": "with", "游泳": "to swim, swimming", "比較": "comparatively, relatively", "看書": "to read, to study", "高興": "happy, glad", "認識": "to know, to recognize", "歡迎": "welcome, to welcome", "華語": "Mandarin", "學": "to learn, to study", "最": "the most",
+            "外公": "maternal grandfather", "以前": "before, previously", "外婆": "maternal grandmother", "做生意": "to do business", "幫": "to help, to assist", "醫生": "doctor", "工作": "to work, job, task", "銀行": "bank", "一樣": "same, like, the same as", "電腦公司": "computer company", "上班": "to go to work", "以後": "in the future",
+            "要": "to want", "附近": "nearby, next to", "超級市場": "supermarket", "東西": "thing(s), stuff", "巧克力": "chocolate", "冰淇淋": "ice cream", "買": "to buy", "牛肉": "beef", "青菜": "green vegetables", "米": "uncooked rice", "可以": "can, may, possible", "糖果": "candy", "魚": "fish",
+            "週末": "weekend", "漢堡": "hamburger", "薯條": "french fries", "出去": "to go out", "先": "first, early", "蛋炒飯": "egg fried rice", "晚餐": "dinner, supper", "再": "then, again", "麵": "noodles", "了": "completed action marker", "湯": "soup", "玉米湯": "corn soup", "已經": "already", "餓": "hungry", "快點": "hurry up, faster",
+            "秋天": "autumn, fall", "樹葉": "leaf, leaves", "變": "to change", "黃": "yellow", "草": "grass", "還是": "still", "綠色": "green", "天氣": "weather", "舒服": "comfortable", "春天": "spring", "不錯": "not bad, pretty good", "顏色": "color", "時候": "time, when", "花": "flower(s)", "院子": "yard", "紅色": "red", "白色": "white", "漂亮": "pretty, beautiful",
+            "農曆": "lunar calendar", "說": "to speak, to say", "新年": "New Year", "華人": "Ethnic Chinese", "下": "next, down, below", "星期": "week", "會": "shall, will", "年糕": "New Year cake", "那天": "that day", "給": "to give, to, for", "拜年": "to visit during Lunar New Year", "臺灣": "Taiwan", "每": "each, every", "紅包": "red envelope", "如果": "if", "放鞭炮": "to set off firecrackers", "貼春聯": "to stick spring festival couplets", "明天": "tomorrow",
+            "該": "should, ought to", "起床": "to get out of bed", "來不及": "too late", "累": "tired", "睡覺": "to sleep", "晚上": "night", "早一點": "a bit earlier", "趕快": "right away, hurry up", "刷牙": "to brush one's teeth", "洗澡": "to take a bath/shower", "昨天": "yesterday", "別": "don't", "忘了": "forgot", "用": "to use", "肥皂": "soap", "洗臉": "to wash one's face", "知道": "to know", "乾淨": "clean",
+            "寵物": "pet", "送給": "to give as a present", "隻": "measure word for animals", "狗": "dog", "帶": "to bring", "散步": "to take a walk", "牠們": "they/them (animals)", "過": "particle for past experience", "養": "to raise", "去年": "last year", "貓": "cat", "上個月": "last month", "不見了": "disappeared", "非常": "very, extremely", "可愛": "cute, lovable", "餵": "to feed", "兔子": "rabbit",
+            "告訴": "to tell", "方向": "direction", "指南針": "compass", "哪裡": "where", "它": "it", "北方": "the north", "南方": "the south", "教室": "classroom", "東方": "the east", "西方": "the west", "校門口": "school entrance", "因為": "because", "所以": "so, therefore", "足球場": "soccer/football field",
+            "暑假": "summer vacation", "看": "to visit, to see", "住在": "to live in/at", "本來": "originally", "退休": "to retire", "一次": "once", "旅行": "to travel, to take a trip", "舅舅": "uncle (maternal)", "阿姨": "aunt (maternal)", "臺北": "Taipei", "臺南": "Tainan", "紐約": "New York", "法國": "France",
+            "動物園": "zoo", "大象": "elephant", "老虎": "tiger", "希望": "to wish", "這一次": "this time", "看到": "to see", "熊貓": "panda", "猴子": "monkey", "不但": "not only...", "還": "also, still", "企鵝": "penguin", "胖胖的": "chubby", "真": "really", "長頸鹿": "giraffe", "脖子": "neck", "長長的": "long",
+            "網路": "internet", "電話": "telephone", "影像": "image", "很久": "a long time", "說話": "to speak, to talk", "看起來": "look, look like", "瘦": "skinny, thin", "長高": "to grow tall", "上課": "to go to class", "有意思": "interesting", "好好": "do a good job of...", "寫": "to write", "信": "letter", "沒問題": "no problem",
+            "方友朋": "Fang Youpeng (Name)", "張莉": "Zhang Li (Name)"
+        };
 
         window.saveStats = function() {
             localStorage.setItem('chineseRpgStats', JSON.stringify(window.playerStats));
@@ -1005,6 +1029,7 @@
         };
 
         window.openTreasureModal = function(treasureId) {
+            window.currentTreasureId = treasureId;
             const treasure = window.treasuresDB.find(t => t.id === treasureId);
             const tLevel = window.playerStats.treasures[treasureId] || 0;
             if (treasure && tLevel > 0) {
@@ -1023,6 +1048,125 @@
         window.closeTreasureModal = function() {
             document.getElementById('treasure-modal').classList.add('hidden');
             document.getElementById('treasure-modal').classList.remove('flex');
+        };
+
+        // 產生並列印生詞卡 (左邊生詞直式、右邊注音/拼音/英文)
+        window.downloadFlashcards = function() {
+            if (!window.currentTreasureId) return;
+            const tDef = window.treasuresDB.find(t => t.id === window.currentTreasureId);
+            if (!tDef) return;
+            
+            const levelIdx = tDef.levelIdx;
+            const levelData = window.levelsData[levelIdx];
+            const words = levelData.questions;
+
+            let printContent = `
+                <html>
+                <head>
+                    <title>${levelData.levelName} - 生詞卡</title>
+                    <style>
+                        @page { size: A4; margin: 10mm; }
+                        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; }
+                        .page { width: 100%; height: 277mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); gap: 0; page-break-after: always; box-sizing: border-box; border: 2px solid #333; }
+                        .card { border: 1px dashed #999; display: flex; flex-direction: row; box-sizing: border-box; }
+                        .card-left { width: 50%; border-right: 1px dashed #ccc; display: flex; justify-content: center; align-items: center; padding: 10px; }
+                        .card-right { width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px 15px; text-align: center; }
+                        
+                        /* 正面生詞改為直式排版 */
+                        .front-text { 
+                            font-size: 42px; 
+                            font-weight: bold; 
+                            color: #000; 
+                            writing-mode: vertical-rl; 
+                            text-orientation: upright; 
+                            letter-spacing: 6px; 
+                        }
+                        
+                        .back-zhuyin { font-size: 15px; color: #b45309; margin-bottom: 6px; font-weight: bold; letter-spacing: 1px; line-height: 1.3; }
+                        .back-pinyin { font-size: 18px; color: #333; margin-bottom: 6px; font-family: Arial, sans-serif; line-height: 1.3; }
+                        .back-english { font-size: 16px; color: #1e40af; font-weight: 500; line-height: 1.2; text-align: center; }
+                        @media print {
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+            `;
+
+            // 每 8 個單字為一組 (一頁 A4 剛好 2x4=8 張卡片)
+            for (let i = 0; i < words.length; i += 8) {
+                const chunk = words.slice(i, i + 8);
+                
+                printContent += '<div class="page">';
+                for(let j = 0; j < 8; j++) {
+                    const w = chunk[j];
+                    if(w) {
+                        const eng = window.vocabDict[w.answer] || "";
+                        
+                        let displayAnswer = w.answer; // 生詞直書，不再手動插入換行符號
+                        let displayZhuyin = w.zhuyin;
+                        let displayPinyin = w.pinyin;
+
+                        // 背面注音與拼音：針對四個字的詞彙切斷換行對齊
+                        if (w.answer.length === 4) {
+                            let zParts = w.zhuyin.split(' ');
+                            if (zParts.length === 4) {
+                                displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2] + ' ' + zParts[3];
+                            }
+                            
+                            let pParts = w.pinyin.split(' ');
+                            if (pParts.length === 4) {
+                                displayPinyin = pParts[0] + ' ' + pParts[1] + '<br>' + pParts[2] + ' ' + pParts[3];
+                            }
+                        } 
+                        // 背面注音與拼音：針對三個字的詞彙切斷換行 (上2字、下1字)
+                        else if (w.answer.length === 3) {
+                            let zParts = w.zhuyin.split(' ');
+                            if (zParts.length === 3) {
+                                displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2];
+                            }
+                            
+                            let pParts = w.pinyin.split(' ');
+                            if (pParts.length === 3) {
+                                displayPinyin = pParts[0] + ' ' + pParts[1] + '<br>' + pParts[2];
+                            }
+                        }
+
+                        printContent += `
+                            <div class="card">
+                                <div class="card-left">
+                                    <div class="front-text">${displayAnswer}</div>
+                                </div>
+                                <div class="card-right">
+                                    <div class="back-zhuyin">${displayZhuyin}</div>
+                                    <div class="back-pinyin">${displayPinyin}</div>
+                                    <div class="back-english">${eng}</div>
+                                </div>
+                            </div>`;
+                    } else {
+                        printContent += `<div class="card"></div>`;
+                    }
+                }
+                printContent += '</div>';
+            }
+
+            printContent += `
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    <\\/script>
+                </body>
+                </html>
+            `;
+            printContent = printContent.replace('<\\/script>', '<\/script>');
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.open();
+            printWindow.document.write(printContent);
+            printWindow.document.close();
         };
 
         window.openLeaderboard = function() {
@@ -1501,13 +1645,14 @@
                     window.playerStats.treasures[tDef.id] = currentLv + 1;
                     let newLv = window.playerStats.treasures[tDef.id];
 
+                    // 加入點擊開啟寶物視窗的功能
                     droppedTreasuresHTML += `
-                        <div class="flex flex-col items-center mx-2 my-2 group">
-                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-500 flex items-center justify-center text-4xl shadow-xl treasure-shine ${tDef.color} relative transition-transform transform group-hover:scale-110">
+                        <div class="flex flex-col items-center mx-2 my-2 group cursor-pointer" onclick="window.openTreasureModal('${tDef.id}')">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-500 flex items-center justify-center text-4xl shadow-xl treasure-shine ${tDef.color} relative transition-transform transform group-hover:scale-110 hover:border-yellow-400">
                                 <i class="fa-solid ${tDef.icon} drop-shadow-lg"></i>
                                 <span class="absolute -bottom-1 -right-1 bg-gradient-to-br from-red-500 to-red-700 text-white text-[12px] font-black px-1.5 py-0.5 rounded-lg border-2 border-slate-900 drop-shadow-md transform scale-75 origin-bottom-right">Lv.${newLv}</span>
                             </div>
-                            <p class="text-white font-bold text-sm mt-3 w-24 truncate text-center drop-shadow-md" title="${tDef.name[window.currentLang]}">${tDef.name[window.currentLang]}</p>
+                            <p class="text-white font-bold text-sm mt-3 w-24 truncate text-center drop-shadow-md group-hover:text-yellow-400 transition-colors" title="${tDef.name[window.currentLang]}">${tDef.name[window.currentLang]}</p>
                         </div>
                     `;
                 }
