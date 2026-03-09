@@ -1050,7 +1050,7 @@
             document.getElementById('treasure-modal').classList.remove('flex');
         };
 
-        // 產生並列印生詞卡 (左邊生詞橫式置中、右邊注音/拼音/英文，長詞自動斷行)
+        // 產生並列印生詞卡 (左邊生詞直式、右邊注音/拼音/英文)
         window.downloadFlashcards = function() {
             if (!window.currentTreasureId) return;
             const tDef = window.treasuresDB.find(t => t.id === window.currentTreasureId);
@@ -1069,10 +1069,20 @@
                         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; }
                         .page { width: 100%; height: 277mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); gap: 0; page-break-after: always; box-sizing: border-box; border: 2px solid #333; }
                         .card { border: 1px dashed #999; display: flex; flex-direction: row; box-sizing: border-box; }
-                        .card-left { width: 50%; border-right: 1px dashed #ccc; display: flex; justify-content: center; align-items: center; padding: 10px; text-align: center; }
+                        .card-left { width: 50%; border-right: 1px dashed #ccc; display: flex; justify-content: center; align-items: center; padding: 10px; }
                         .card-right { width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px 15px; text-align: center; }
                         
-                        .front-text { font-size: 40px; font-weight: bold; color: #000; text-align: center; line-height: 1.3; }
+                        /* 正面生詞改為直式排版 (一字一行) */
+                        .front-text { 
+                            font-size: 42px; 
+                            font-weight: bold; 
+                            color: #000; 
+                            writing-mode: vertical-rl; 
+                            text-orientation: upright; 
+                            letter-spacing: 6px; 
+                        }
+                        
+                        /* 背面注音拼音維持橫式，加強行距 */
                         .back-zhuyin { font-size: 15px; color: #b45309; margin-bottom: 6px; font-weight: bold; letter-spacing: 1px; line-height: 1.3; }
                         .back-pinyin { font-size: 18px; color: #333; margin-bottom: 6px; font-family: Arial, sans-serif; line-height: 1.3; }
                         .back-english { font-size: 16px; color: #1e40af; font-weight: 500; line-height: 1.2; text-align: center; }
@@ -1094,14 +1104,12 @@
                     if(w) {
                         const eng = window.vocabDict[w.answer] || "";
                         
-                        let displayAnswer = w.answer;
+                        let displayAnswer = w.answer; // 生詞直書，不手動插入換行符號
                         let displayZhuyin = w.zhuyin;
                         let displayPinyin = w.pinyin;
 
-                        // 針對四個字的生詞進行中間切斷換行
+                        // 背面注音與拼音：針對四個字的詞彙切斷換行對齊 (不用一字一行)
                         if (w.answer.length === 4) {
-                            displayAnswer = w.answer.substring(0, 2) + '<br>' + w.answer.substring(2, 4);
-                            
                             let zParts = w.zhuyin.split(' ');
                             if (zParts.length === 4) {
                                 displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2] + ' ' + zParts[3];
@@ -1112,10 +1120,8 @@
                                 displayPinyin = pParts[0] + ' ' + pParts[1] + '<br>' + pParts[2] + ' ' + pParts[3];
                             }
                         } 
-                        // 針對三個字的生詞進行切斷換行 (上2字、下1字)
+                        // 背面注音與拼音：針對三個字的詞彙切斷換行 (上2字、下1字)
                         else if (w.answer.length === 3) {
-                            displayAnswer = w.answer.substring(0, 2) + '<br>' + w.answer.substring(2, 3);
-                            
                             let zParts = w.zhuyin.split(' ');
                             if (zParts.length === 3) {
                                 displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2];
