@@ -104,7 +104,7 @@
         ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
     </style>
     
-    <!-- 攔截並解析 URL 分享連結邏輯 (在 DOM 載入前執行確保狀態正確) -->
+    <!-- 攔截並解析 URL 分享連結邏輯 -->
     <script>
         const hash = window.location.hash;
         if (hash.startsWith('#game=')) {
@@ -431,6 +431,13 @@
                         <input type="text" id="cq-wrongs" class="flex-grow p-2.5 rounded-lg bg-slate-800 border border-slate-600 text-white text-sm focus:border-purple-400 focus:outline-none placeholder-slate-500" placeholder="錯誤選項 (請填寫 3 個，用逗號分隔)">
                         <button onclick="window.addCustomQuestion()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-6 rounded-lg transition-colors whitespace-nowrap shadow-md border-b-2 border-purple-800" data-i18n="addQ">加入題目</button>
                     </div>
+                    
+                    <!-- 批次匯入 CSV 區塊 -->
+                    <div class="md:col-span-2 flex flex-col md:flex-row gap-2 mt-2 pt-3 border-t border-slate-700">
+                        <input type="file" id="csv-upload" accept=".csv" class="hidden" onchange="window.handleCsvUpload(event)">
+                        <p class="text-slate-400 text-xs flex-grow flex items-center"><i class="fa-solid fa-circle-info mr-1 text-blue-400"></i><span data-i18n="csvFormatHint">CSV 格式：題目,正確答案,注音,拼音,錯誤1,錯誤2,錯誤3</span></p>
+                        <button onclick="document.getElementById('csv-upload').click()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg transition-colors whitespace-nowrap shadow-md border-b-2 border-emerald-800"><i class="fa-solid fa-file-csv mr-2"></i><span data-i18n="importCsv">匯入 CSV</span></button>
+                    </div>
                 </div>
                 <p id="cq-warning" class="text-red-400 text-xs mt-2 hidden font-bold" data-i18n="customError">請填寫完整資訊，並確保有剛好 3 個錯誤選項！</p>
             </div>
@@ -447,14 +454,12 @@
                 <div class="flex items-center gap-2 mb-1">
                     <label class="flex items-center text-white text-sm cursor-pointer font-bold bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-600 shadow-sm hover:bg-slate-700 transition-colors">
                         <input type="checkbox" id="setting-show-builtin" class="mr-2 w-4 h-4 accent-purple-500" onchange="window.toggleBuiltInSetting(this.checked)">
-                        <span data-i18n="toggleBuiltIn">顯示內建《學華語向前走》第二冊關卡</span>
+                        <span data-i18n="toggleBuiltIn">教師模式：顯示內建《學華語向前走》第二冊關卡</span>
                     </label>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <input type="file" id="csv-upload" accept=".csv" class="hidden" onchange="window.handleCsvUpload(event)">
                     <input type="file" id="json-upload" accept=".json" class="hidden" onchange="window.handleBackupUpload(event)">
                     
-                    <button onclick="document.getElementById('csv-upload').click()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg shadow-md border-b-2 border-emerald-800 text-xs md:text-sm transition-transform active:translate-y-1"><i class="fa-solid fa-file-csv mr-1"></i> <span data-i18n="importCsv">匯入 CSV</span></button>
                     <button onclick="document.getElementById('json-upload').click()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-md border-b-2 border-blue-800 text-xs md:text-sm transition-transform active:translate-y-1"><i class="fa-solid fa-upload mr-1"></i> <span data-i18n="importBackup">載入備份</span></button>
                     <button onclick="window.exportCustomBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-md border-b-2 border-indigo-800 text-xs md:text-sm transition-transform active:translate-y-1"><i class="fa-solid fa-download mr-1"></i> <span data-i18n="exportBackup">匯出備份</span></button>
                     
@@ -560,8 +565,8 @@
                 importSuccess: "成功匯入 {n} 題！", importFail: "匯入失敗，請檢查 CSV 檔案格式是否正確。",
                 addLevel: "新增關卡", enterLevelName: "請輸入新關卡名稱：",
                 customLevelsSection: "自訂與範例關卡", officialLevelsSection: "《學華語向前走》全冊關卡",
-                toggleBuiltIn: "顯示內建《學華語向前走》第二冊關卡", exportBackup: "匯出備份", importBackup: "載入備份",
-                generateLink: "複製學生連結", generateLinkSuccess: "網址已複製到剪貼簿！\n學生透過此連結進入，將自動載入您的題庫並隱藏官方關卡，專注挑戰您出的題目。",
+                toggleBuiltIn: "教師模式：顯示內建《學華語向前走》第二冊關卡", exportBackup: "匯出備份", importBackup: "載入備份",
+                generateLink: "複製學生連結", generateLinkSuccess: "網址已複製到剪貼簿！\n學生透過此連結進入，將自動載入您的題庫並隱藏內建關卡。",
                 linkTooLong: "您的題庫太龐大，無法產生連結！\n請改用「匯出備份」將檔案傳送給學生匯入。", importJsonSuccess: "備份載入成功！", invalidJson: "無效的備份檔案格式。"
             },
             zhCN: {
@@ -597,7 +602,7 @@
                 importSuccess: "成功汇入 {n} 题！", importFail: "汇入失败，请检查 CSV 档案格式是否正确。",
                 addLevel: "新增关卡", enterLevelName: "请输入新关卡名称：",
                 customLevelsSection: "自订与范例关卡", officialLevelsSection: "《学华语向前走》全册关卡",
-                toggleBuiltIn: "显示内建《学华语向前走》第二册关卡", exportBackup: "汇出备份", importBackup: "载入备份",
+                toggleBuiltIn: "教师模式：显示内建《学华语向前走》第二册关卡", exportBackup: "汇出备份", importBackup: "载入备份",
                 generateLink: "复制学生连结", generateLinkSuccess: "网址已复制！\n学生透过此连结进入，将自动载入您的题库并隐藏官方关卡，专注挑战您出的题目。",
                 linkTooLong: "您的题库太庞大，无法产生连结！\n请改用「汇出备份」将档案传送给学生汇入。", importJsonSuccess: "备份载入成功！", invalidJson: "无效的备份档案格式。"
             },
@@ -635,7 +640,7 @@
                 importSuccess: "Successfully imported {n} questions!", importFail: "Import failed. Please check your CSV format.",
                 addLevel: "Add Level", enterLevelName: "Enter new level name:",
                 customLevelsSection: "Custom Levels", officialLevelsSection: "Official Textbook Levels",
-                toggleBuiltIn: "Show Built-in Let's Learn Mandarin Vol. 2 Levels", exportBackup: "Export JSON", importBackup: "Import JSON",
+                toggleBuiltIn: "Teacher Mode: Show Built-in Let's Learn Mandarin Vol. 2 Levels", exportBackup: "Export JSON", importBackup: "Import JSON",
                 generateLink: "Copy Share Link", generateLinkSuccess: "Link copied! Students using this link will automatically load your custom questions and hide built-in levels.",
                 linkTooLong: "Your question bank is too large for a URL link. Please use Export JSON and share the file.", importJsonSuccess: "Backup loaded successfully!", invalidJson: "Invalid backup file format."
             }
@@ -644,8 +649,8 @@
         // ==========================================
         // 繁簡轉換映射函數
         // ==========================================
-        const tcChars = "華語傳說準備戰鬥撤退必須答對每個單字才能擊敗魔王喔載入題目中點擊顯示提示注音拼音勝利繼續前進回主選單選擇你要複習的關卡最多可選請至少開始挑戰綜合特訓大生命值收集到寶物還沒有打怪吧輸入姓名讓記住劍士魔法師例如取消確定等級太棒了哎呀錯倒下生詞不太熟休息重新遭遇出現完成神啦成功全數過關獲得經驗提升升級下載字閉小已傳加成效果刪除進度連排行榜紀錄為第一位上警這裡們會樣學嗎歡迎買賣寫書報紙機鐘腦視電話車腳踏騎醫院護藥銀員圖館場體育遊戲園區條塊雙兩輛種過來去開門窗戶筆幫樂節慶農曆貼聯鞭紅錢貴便宜麵飯餃湯雞豬羊魚蝦綠藍黃黑白顏色蘋櫻樹葉鳥貓龍馬猴蟲頸企鵝獅斑網影聲聽見覺壞舊熱溫涼難餓飽睡臉頭髮時後昨東兒誰什麼怎麼因為與極著啊餵辦樓總結實際測補階規則稱碼認鎖鑰窮盡僅卻仍鮮輕軟悲氣憤惱怒驚訝懼擔憂慮創造作閃發烏問當帳號線愛國對邊說聽讀關閃間觀風飛動結綠萬歲幾處師計長質離雖購項採貪繪歷傷辭爺嬤媽哥弟姊妹新關名稱專教式供";
-        const scChars = "华语传说准备战斗撤退必须答对每个单字才能击败魔王喔载入题目中点击显示提示注音拼音胜利继续前进回主选单选择你要复习的关卡最多可选请至少开始挑战综合特训大生命值收集到宝物还没有打怪吧输入姓名让记住剑士魔法师例如取消确定等级太棒了哎呀错倒下生词不太熟休息重新遭遇出现完成神啦成功全数过关获得经验提升升级下载字闭小已传加成效果删除进度连排行榜纪录为第一位上警这里们会样学吗欢迎买卖写书报纸机钟脑视电话车脚踏骑医院护药银员图馆场体育游戏园区条块双两辆种过来去开门窗户笔帮乐节庆农历贴联鞭红钱贵便宜面饭饺汤鸡猪羊鱼虾绿蓝黄黑白颜色苹樱树叶鸟猫龙马猴虫颈企鹅狮斑网影声听见觉坏旧热温凉难饿饱睡脸头发时后昨东儿谁什么怎么因为与极着啊喂办楼总结实际测补阶规则称码认锁钥穷尽仅却仍鲜轻软悲气愤恼怒惊讶惧担忧虑创造作闪发乌问当帐号线爱国对边说听读关闪间观风飞动结绿万岁几处师计长质离虽购项采贪绘历伤辞爷嬷妈哥弟姐妹新关名称专教式供";
+        const tcChars = "華語傳說準備戰鬥撤退必須答對每個單字才能擊敗魔王喔載入題目中點擊顯示提示注音拼音勝利繼續前進回主選單選擇你要複習的關卡最多可選請至少開始挑戰綜合特訓大生命值收集到寶物還沒有打怪吧輸入姓名讓記住劍士魔法師例如取消確定等級太棒了哎呀錯倒下生詞不太熟休息重新遭遇出現完成神啦成功全數過關獲得經驗提升升級下載字閉小已傳加成效果刪除進度連排行榜紀錄為第一位上警這裡們會樣學嗎歡迎買賣寫書報紙機鐘腦視電話車腳踏騎醫院護藥銀員圖館場體育遊戲園區條塊雙兩輛種過來去開門窗戶筆幫樂節慶農曆貼聯鞭紅錢貴便宜麵飯餃湯雞豬羊魚蝦綠藍黃黑白顏色蘋櫻樹葉鳥貓龍馬猴蟲頸企鵝獅斑網影聲聽見覺壞舊熱溫涼難餓飽睡臉頭髮時後昨東兒誰什麼怎麼因為與極著啊餵辦樓總結實際測補階規則稱碼認鎖鑰窮盡僅卻仍鮮輕軟悲氣憤惱怒驚訝懼擔憂慮創造作閃發烏問當帳號線愛國對邊說聽讀關閃間觀風飛動結綠萬歲幾處師計長質離雖購項採貪繪歷傷辭爺嬤媽哥弟姊妹新關名稱專教式供範例水果香蕉蘋果葡萄橘子西瓜渴";
+        const scChars = "华语传说准备战斗撤退必须答对每个单字才能击败魔王喔载入题目中点击显示提示注音拼音胜利继续前进回主选单选择你要复习的关卡最多可选请至少开始挑战综合特训大生命值收集到宝物还没有打怪吧输入姓名让记住剑士魔法师例如取消确定等级太棒了哎呀错倒下生词不太熟休息重新遭遇出现完成神啦成功全数过关获得经验提升升级下载字闭小已传加成效果删除进度连排行榜纪录为第一位上警这里们会样学吗欢迎买卖写书报纸机钟脑视电话车脚踏骑医院护药银员图馆场体育游戏园区条块双两辆种过来去开门窗户笔帮乐节庆农历贴联鞭红钱贵便宜面饭饺汤鸡猪羊鱼虾绿蓝黄黑白颜色苹樱树叶鸟猫龙马猴虫颈企鹅狮斑网影声听见觉坏旧热温凉难饿饱睡脸头发时后昨东儿谁什么怎么因为与极着啊喂办楼总结实际测补阶规则称码认锁钥穷尽仅却仍鲜轻软悲气愤恼怒惊讶惧担忧虑创造作闪发乌问当帐号线爱国对边说听读关闪间观风飞动结绿万岁几处师计长质离虽购项采贪绘历伤辞爷嬷妈哥弟姐妹新关名称专教式供范例水果香蕉苹果葡萄橘子西瓜渴";
         const t2sMap = {};
         for(let i = 0; i < tcChars.length; i++) {
             t2sMap[tcChars[i]] = scChars[i];
@@ -688,20 +693,35 @@
         window.isBossWave = false; 
         window.currentTreasureId = null; 
         
-        window.customLevels = JSON.parse(localStorage.getItem('chineseRpgCustomLevels')) || [];
-        window.currentEditingLevelId = null;
+        window.customLevels = JSON.parse(localStorage.getItem('chineseRpgCustomLevels'));
 
-        // 舊版單一自訂題庫轉移機制 (向下相容)
-        let oldCustomQs = JSON.parse(localStorage.getItem('chineseRpgCustomQs'));
-        if (oldCustomQs && oldCustomQs.length > 0 && window.customLevels.length === 0) {
-            window.customLevels.push({
-                id: 'c_default',
-                levelName: window.t('customLevelName'),
-                questions: oldCustomQs
-            });
+        // 初始化預設「範例關卡」如果一開始沒有自訂關卡的話
+        if (!window.customLevels || window.customLevels.length === 0) {
+            window.customLevels = [];
+            
+            let oldCustomQs = JSON.parse(localStorage.getItem('chineseRpgCustomQs'));
+            if (oldCustomQs && oldCustomQs.length > 0) {
+                window.customLevels.push({
+                    id: 'c_default',
+                    levelName: '自訂關卡',
+                    questions: oldCustomQs
+                });
+                localStorage.removeItem('chineseRpgCustomQs');
+            } else {
+                window.customLevels.push({
+                    id: 'c_example',
+                    levelName: '範例關卡：水果',
+                    questions: [
+                        { question: "猴子喜歡吃黃色的 ______。", answer: "香蕉", zhuyin: "ㄒㄧㄤ ㄐㄧㄠ", pinyin: "xiāng jiāo", options: ["香蕉", "蘋果", "葡萄", "西瓜"] },
+                        { question: "紅紅的 ______ 很好吃。", answer: "蘋果", zhuyin: "ㄆㄧㄥˊ ㄍㄨㄛˇ", pinyin: "píng guǒ", options: ["蘋果", "香蕉", "葡萄", "橘子"] },
+                        { question: "夏天吃 ______ 最解渴。", answer: "西瓜", zhuyin: "ㄒㄧ ㄍㄨㄚ", pinyin: "xī guā", options: ["西瓜", "香蕉", "蘋果", "橘子"] }
+                    ]
+                });
+            }
             localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
-            localStorage.removeItem('chineseRpgCustomQs');
         }
+
+        window.currentEditingLevelId = null;
 
         window.playerStats = JSON.parse(localStorage.getItem('chineseRpgStats')) || { name: "", level: 1, exp: 0, maxExp: 100, baseMaxHp: 200, treasures: {}, style: 'swordsman' };
         
@@ -760,6 +780,337 @@
         window.uploadScoreToFirebase = async function() {};
         window.getCurrentUserId = () => null;
         window.leaderboardData = [];
+
+        // ==========================================
+        // 自訂編輯器函數區塊 (放置於這裡確保全域可見)
+        // ==========================================
+        window.openCustomEditor = function() {
+            document.getElementById('custom-editor-modal').classList.remove('hidden');
+            document.getElementById('custom-editor-modal').classList.add('flex');
+            
+            if (window.customLevels.length === 0) {
+                window.customLevels.push({
+                    id: 'c_' + Date.now(),
+                    levelName: window.t('customLevelName') + ' 1',
+                    questions: []
+                });
+                localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+            }
+            
+            if (!window.currentEditingLevelId) {
+                window.currentEditingLevelId = window.customLevels[0].id;
+            }
+            
+            window.renderCustomLevelSelect();
+            window.renderCustomQuestionsList();
+        };
+
+        window.closeCustomEditor = function() {
+            document.getElementById('custom-editor-modal').classList.add('hidden');
+            document.getElementById('custom-editor-modal').classList.remove('flex');
+            window.showMenu(); 
+        };
+        
+        window.renderCustomLevelSelect = function() {
+            const selectEl = document.getElementById('custom-level-select');
+            if(!selectEl) return;
+            selectEl.innerHTML = '';
+            window.customLevels.forEach(cLevel => {
+                const opt = document.createElement('option');
+                opt.value = cLevel.id;
+                opt.innerText = cLevel.levelName;
+                if (cLevel.id === window.currentEditingLevelId) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+        };
+        
+        window.selectCustomLevel = function(levelId) {
+            window.currentEditingLevelId = levelId;
+            window.renderCustomQuestionsList();
+        };
+        
+        window.createNewCustomLevel = function() {
+            const newName = prompt(window.t('enterLevelName'), window.t('customLevelName') + ' ' + (window.customLevels.length + 1));
+            if (newName && newName.trim() !== '') {
+                const newId = 'c_' + Date.now();
+                window.customLevels.push({
+                    id: newId,
+                    levelName: newName.trim(),
+                    questions: []
+                });
+                localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+                window.currentEditingLevelId = newId;
+                window.renderCustomLevelSelect();
+                window.renderCustomQuestionsList();
+            }
+        };
+        
+        window.deleteCurrentCustomLevel = function() {
+            if (window.customLevels.length === 0) return;
+            if (confirm(window.t('customDelete') + " ?")) {
+                const idx = window.customLevels.findIndex(l => l.id === window.currentEditingLevelId);
+                if (idx !== -1) {
+                    window.customLevels.splice(idx, 1);
+                    localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+                    if (window.customLevels.length > 0) {
+                        window.currentEditingLevelId = window.customLevels[0].id;
+                    } else {
+                        window.currentEditingLevelId = null;
+                    }
+                    window.renderCustomLevelSelect();
+                    window.renderCustomQuestionsList();
+                }
+            }
+        };
+
+        window.addCustomQuestion = function() {
+            if (!window.currentEditingLevelId) return;
+            
+            const qText = document.getElementById('cq-text').value.trim();
+            const qAns = document.getElementById('cq-ans').value.trim();
+            const qZy = document.getElementById('cq-zy').value.trim();
+            const qPy = document.getElementById('cq-py').value.trim();
+            const qWrongsStr = document.getElementById('cq-wrongs').value.trim();
+            
+            const wrongArray = qWrongsStr.replace(/，/g, ',').split(',').map(s => s.trim()).filter(s => s);
+            
+            const warnEl = document.getElementById('cq-warning');
+            if (!qText || !qAns || wrongArray.length !== 3) {
+                warnEl.classList.remove('hidden');
+                return;
+            }
+            warnEl.classList.add('hidden');
+            
+            const newQ = {
+                question: qText,
+                zhuyin: qZy || " ", 
+                pinyin: qPy || " ", 
+                options: [qAns, ...wrongArray],
+                answer: qAns
+            };
+            
+            const levelIdx = window.customLevels.findIndex(l => l.id === window.currentEditingLevelId);
+            if (levelIdx !== -1) {
+                window.customLevels[levelIdx].questions.push(newQ);
+                localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+            }
+            
+            document.getElementById('cq-text').value = '';
+            document.getElementById('cq-ans').value = '';
+            document.getElementById('cq-zy').value = '';
+            document.getElementById('cq-py').value = '';
+            document.getElementById('cq-wrongs').value = '';
+            
+            window.renderCustomQuestionsList();
+        };
+
+        window.deleteCustomQuestion = function(qIndex) {
+            const levelIdx = window.customLevels.findIndex(l => l.id === window.currentEditingLevelId);
+            if (levelIdx !== -1) {
+                window.customLevels[levelIdx].questions.splice(qIndex, 1);
+                localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+                window.renderCustomQuestionsList();
+            }
+        };
+
+        window.renderCustomQuestionsList = function() {
+            const listEl = document.getElementById('custom-q-list');
+            if(!listEl) return;
+            listEl.innerHTML = '';
+            
+            const currentLevel = window.customLevels.find(l => l.id === window.currentEditingLevelId);
+            
+            if (!currentLevel || !currentLevel.questions || currentLevel.questions.length === 0) {
+                listEl.innerHTML = `<p class="text-slate-400 text-sm text-center py-4" data-i18n="noCustomQ">${window.t('noCustomQ')}</p>`;
+                return;
+            }
+            
+            currentLevel.questions.forEach((q, idx) => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-600 shadow-inner";
+                
+                const displayQ = window.getLocText(q.question).replace('______', `<span class="text-yellow-400 border-b border-yellow-400 font-black">${window.getLocText(q.answer)}</span>`);
+                const wrongs = q.options.filter(o => o !== q.answer).map(o => window.getLocText(o)).join(', ');
+                
+                item.innerHTML = `
+                    <div class="flex-grow pr-4 min-w-0">
+                        <p class="text-white text-sm font-bold mb-1 truncate">${displayQ}</p>
+                        <p class="text-slate-400 text-xs truncate">[${window.getLocText('錯誤選項')}] ${wrongs}</p>
+                    </div>
+                    <button onclick="window.deleteCustomQuestion(${idx})" class="bg-red-900/50 hover:bg-red-700 text-red-200 p-2.5 rounded-lg border border-red-800 flex-shrink-0 transition-colors shadow-md" title="${window.t('customDelete')}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+        };
+
+        window.parseCSVLine = function(line) {
+            const result = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (inQuotes) {
+                    if (char === '"') {
+                        if (i + 1 < line.length && line[i + 1] === '"') {
+                            cur += '"';
+                            i++;
+                        } else {
+                            inQuotes = false;
+                        }
+                    } else {
+                        cur += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        result.push(cur);
+                        cur = '';
+                    } else {
+                        cur += char;
+                    }
+                }
+            }
+            result.push(cur);
+            return result;
+        };
+
+        window.handleCsvUpload = function(event) {
+            if (!window.currentEditingLevelId) {
+                alert("請先新增一個自訂關卡再匯入！");
+                return;
+            }
+            
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+                let addedCount = 0;
+                
+                const levelIdx = window.customLevels.findIndex(l => l.id === window.currentEditingLevelId);
+                if (levelIdx === -1) return;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    const cols = window.parseCSVLine(line);
+                    
+                    if (i === 0 && (cols[0].includes('題目') || cols[0].includes('题目') || cols[0].toLowerCase().includes('question'))) {
+                        continue;
+                    }
+
+                    if (cols.length >= 7) {
+                        const qText = cols[0].trim();
+                        const qAns = cols[1].trim();
+                        const qZy = cols[2].trim() || " ";
+                        const qPy = cols[3].trim() || " ";
+                        const w1 = cols[4].trim();
+                        const w2 = cols[5].trim();
+                        const w3 = cols[6].trim();
+
+                        if (qText && qAns && w1 && w2 && w3) {
+                            window.customLevels[levelIdx].questions.push({
+                                question: qText,
+                                answer: qAns,
+                                zhuyin: qZy,
+                                pinyin: qPy,
+                                options: [qAns, w1, w2, w3]
+                            });
+                            addedCount++;
+                        }
+                    }
+                }
+
+                if (addedCount > 0) {
+                    localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+                    window.renderCustomQuestionsList();
+                    alert(window.t('importSuccess', {n: addedCount}));
+                } else {
+                    alert(window.t('importFail'));
+                }
+                event.target.value = ''; 
+            };
+            
+            reader.readAsText(file, "UTF-8");
+        };
+
+        window.generateShareLink = function() {
+            try {
+                const data = {
+                    c: window.customLevels,
+                    h: true 
+                };
+                const jsonStr = JSON.stringify(data);
+                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+                
+                if (base64.length > 25000) {
+                    alert(window.t('linkTooLong'));
+                    return;
+                }
+                
+                const url = window.location.origin + window.location.pathname + '#game=' + base64;
+                
+                const tempInput = document.createElement("input");
+                tempInput.value = url;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                
+                alert(window.t('generateLinkSuccess'));
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        };
+
+        window.exportCustomBackup = function() {
+            const dataStr = JSON.stringify(window.customLevels, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "mandarin_rpg_custom_levels.json";
+            a.click();
+        };
+
+        window.handleBackupUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        window.customLevels = data;
+                        localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
+                        window.currentEditingLevelId = window.customLevels.length > 0 ? window.customLevels[0].id : null;
+                        window.renderCustomLevelSelect();
+                        window.renderCustomQuestionsList();
+                        alert(window.t('importJsonSuccess'));
+                    } else {
+                        alert(window.t('invalidJson'));
+                    }
+                } catch(err) {
+                    alert(window.t('invalidJson'));
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file, "UTF-8");
+        };
+
+        window.toggleBuiltInSetting = function(checked) {
+            window.__HIDE_BUILTIN = !checked;
+            localStorage.setItem('chineseRpgHideBuiltIn', window.__HIDE_BUILTIN);
+            window.showMenu();
+        };
 
         // ==========================================
         // 學華語向前走第二冊 完整 12 課題庫與寶物
@@ -1297,13 +1648,14 @@
                 for(let j = 0; j < 8; j++) {
                     const w = chunk[j];
                     if(w) {
-                        const eng = window.vocabDict[w.answer] || "";
+                        const answerStr = w.answer || '';
+                        const eng = (window.vocabDict && window.vocabDict[answerStr]) ? window.vocabDict[answerStr] : "";
                         
-                        let displayAnswer = window.getLocText(w.answer); 
+                        let displayAnswer = window.getLocText(answerStr); 
                         let displayZhuyin = w.zhuyin || "";
                         let displayPinyin = w.pinyin || "";
 
-                        if (w.answer.length === 4) {
+                        if (answerStr.length === 4) {
                             let zParts = displayZhuyin.split(' ');
                             if (zParts.length === 4) {
                                 displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2] + ' ' + zParts[3];
@@ -1314,7 +1666,7 @@
                                 displayPinyin = pParts[0] + ' ' + pParts[1] + '<br>' + pParts[2] + ' ' + pParts[3];
                             }
                         } 
-                        else if (w.answer.length === 3) {
+                        else if (answerStr.length === 3) {
                             let zParts = displayZhuyin.split(' ');
                             if (zParts.length === 3) {
                                 displayZhuyin = zParts[0] + ' ' + zParts[1] + '<br>' + zParts[2];
@@ -1418,72 +1770,7 @@
         window.toggleBuiltInSetting = function(checked) {
             window.__HIDE_BUILTIN = !checked;
             localStorage.setItem('chineseRpgHideBuiltIn', window.__HIDE_BUILTIN);
-            // 立即更新主選單畫面
             window.showMenu();
-        };
-
-        window.generateShareLink = function() {
-            try {
-                const data = {
-                    c: window.customLevels,
-                    h: true // 分享連結預設隱藏內建題庫，讓學生專心在老師的任務上
-                };
-                const jsonStr = JSON.stringify(data);
-                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-                
-                if (base64.length > 25000) {
-                    alert(window.t('linkTooLong'));
-                    return;
-                }
-                
-                const url = window.location.origin + window.location.pathname + '#game=' + base64;
-                
-                const tempInput = document.createElement("input");
-                tempInput.value = url;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand("copy");
-                document.body.removeChild(tempInput);
-                
-                alert(window.t('generateLinkSuccess'));
-            } catch(e) {
-                alert("Error: " + e.message);
-            }
-        };
-
-        window.exportCustomBackup = function() {
-            const dataStr = JSON.stringify(window.customLevels, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "mandarin_rpg_custom_levels.json";
-            a.click();
-        };
-
-        window.handleBackupUpload = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data)) {
-                        window.customLevels = data;
-                        localStorage.setItem('chineseRpgCustomLevels', JSON.stringify(window.customLevels));
-                        window.currentEditingLevelId = window.customLevels.length > 0 ? window.customLevels[0].id : null;
-                        window.renderCustomLevelSelect();
-                        window.renderCustomQuestionsList();
-                        alert(window.t('importJsonSuccess'));
-                    } else {
-                        alert(window.t('invalidJson'));
-                    }
-                } catch(err) {
-                    alert(window.t('invalidJson'));
-                }
-                event.target.value = '';
-            };
-            reader.readAsText(file, "UTF-8");
         };
 
         window.showMenu = function() {
@@ -1492,7 +1779,6 @@
             window.selectedLevels = []; 
             window.currentCombo = 0; 
             
-            // 根據設定決定是否包含內建全冊關卡
             window.levelsData = window.__HIDE_BUILTIN ? [] : window.baseLevelsData.slice();
             
             window.customLevels.forEach((cLevel, idx) => {
@@ -1566,7 +1852,6 @@
             document.getElementById('menu-screen').classList.remove('hidden');
             document.getElementById('menu-screen').classList.add('flex');
             
-            // 同步編輯器中的 checkbox 狀態
             const settingToggle = document.getElementById('setting-show-builtin');
             if (settingToggle) settingToggle.checked = !window.__HIDE_BUILTIN;
         };
@@ -1944,6 +2229,7 @@
                     window.playerStats.treasures[tDef.id] = currentLv + 1;
                     let newLv = window.playerStats.treasures[tDef.id];
 
+                    // 加入點擊開啟寶物視窗的功能
                     droppedTreasuresHTML += `
                         <div class="flex flex-col items-center mx-2 my-2 group cursor-pointer" onclick="window.openTreasureModal('${tDef.id}')">
                             <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-500 flex items-center justify-center text-4xl shadow-xl treasure-shine ${tDef.color} relative transition-transform transform group-hover:scale-110 hover:border-yellow-400">
@@ -2061,16 +2347,6 @@
             overlay.classList.remove('flex');
         }
 
-        window.onload = () => { 
-            window.updateAllLanguageUI(); 
-            if (typeof window.showMenu === 'function') {
-                window.showMenu(); 
-            }
-            if (!window.playerStats.name) {
-                window.openNameModal(true);
-            }
-        };
-
         // ==========================================
         // 自訂題庫編輯器邏輯 (多關卡版本)
         // ==========================================
@@ -2103,6 +2379,7 @@
         
         window.renderCustomLevelSelect = function() {
             const selectEl = document.getElementById('custom-level-select');
+            if(!selectEl) return;
             selectEl.innerHTML = '';
             window.customLevels.forEach(cLevel => {
                 const opt = document.createElement('option');
@@ -2206,6 +2483,7 @@
 
         window.renderCustomQuestionsList = function() {
             const listEl = document.getElementById('custom-q-list');
+            if (!listEl) return;
             listEl.innerHTML = '';
             
             const currentLevel = window.customLevels.find(l => l.id === window.currentEditingLevelId);
@@ -2235,7 +2513,7 @@
             });
         };
 
-        function parseCSVLine(line) {
+        window.parseCSVLine = function(line) {
             const result = [];
             let cur = '';
             let inQuotes = false;
@@ -2265,7 +2543,7 @@
             }
             result.push(cur);
             return result;
-        }
+        };
 
         window.handleCsvUpload = function(event) {
             if (!window.currentEditingLevelId) {
@@ -2289,7 +2567,7 @@
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    const cols = parseCSVLine(line);
+                    const cols = window.parseCSVLine(line);
                     
                     if (i === 0 && (cols[0].includes('題目') || cols[0].includes('题目') || cols[0].toLowerCase().includes('question'))) {
                         continue;
@@ -2328,6 +2606,16 @@
             };
             
             reader.readAsText(file, "UTF-8");
+        };
+
+        window.onload = () => { 
+            window.updateAllLanguageUI(); 
+            if (typeof window.showMenu === 'function') {
+                window.showMenu(); 
+            }
+            if (!window.playerStats.name) {
+                window.openNameModal(true);
+            }
         };
 
         // ==========================================
