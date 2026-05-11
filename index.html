@@ -871,7 +871,37 @@
 
         window.uploadScoreToFirebase = async function() {};
         window.getCurrentUserId = () => null;
-        window.leaderboardData = [];
+        
+        // 預設加入虛擬對手，確保排行榜永遠有目標可挑戰
+        window.leaderboardData = [
+            { uid: 'mock1', name: "Sophia 老師", level: 99, exp: 9999 },
+            { uid: 'mock2', name: "華語大師", level: 50, exp: 4500 },
+            { uid: 'mock3', name: "李小明", level: 12, exp: 1200 },
+            { uid: 'mock4', name: "王大明", level: 8, exp: 500 },
+            { uid: 'mock5', name: "新手冒險家", level: 3, exp: 100 }
+        ];
+
+        // 本地即時更新邏輯 (確保即便離線或權限受限，玩家也能立刻看到自己上榜)
+        window.uploadScoreToFirebase = async function() {
+            if (!window.playerStats || !window.playerStats.name) return;
+            const myScore = {
+                uid: window.getCurrentUserId ? window.getCurrentUserId() : 'local_me',
+                name: window.playerStats.name,
+                level: window.playerStats.level,
+                exp: window.playerStats.exp,
+                timestamp: Date.now()
+            };
+            const myIndex = window.leaderboardData.findIndex(p => p.name === window.playerStats.name);
+            if (myIndex !== -1) window.leaderboardData[myIndex] = myScore;
+            else window.leaderboardData.push(myScore);
+            
+            // 重新排序
+            window.leaderboardData.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
+            
+            if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
+                window.renderLeaderboard();
+            }
+        };
 
         // ==========================================
         // 4. 遊戲核心與儲存函數
@@ -1794,7 +1824,7 @@
                 const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
                 const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 
-                const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'mandarin-rpg';
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
                 
                 const app = initializeApp(firebaseConfig);
@@ -1804,10 +1834,13 @@
                 let currentUser = null;
                 window.getCurrentUserId = () => currentUser ? currentUser.uid : null;
 
+                const originalUpload = window.uploadScoreToFirebase;
                 window.uploadScoreToFirebase = async function() {
+                    if(typeof originalUpload === 'function') await originalUpload();
+                    
                     if (!currentUser || !window.db || !window.playerStats || !window.playerStats.name) return;
                     try {
-                        const lbDocRef = doc(window.db, 'artifacts', canvasAppId, 'public', 'data', 'leaderboard', currentUser.uid);
+                        const lbDocRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
                         await setDoc(lbDocRef, {
                             name: window.playerStats.name,
                             level: window.playerStats.level,
@@ -1819,7 +1852,7 @@
 
                 const setupLeaderboardListener = function() {
                     if (!currentUser || !window.db) return;
-                    const lbRef = collection(window.db, 'artifacts', canvasAppId, 'public', 'data', 'leaderboard');
+                    const lbRef = collection(window.db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                     onSnapshot(lbRef, (snapshot) => {
                         let rawData = [];
                         snapshot.forEach(docSnap => { rawData.push({ uid: docSnap.id, ...docSnap.data() }); });
@@ -1834,6 +1867,7 @@
                         });
                         
                         let data = Object.values(uniquePlayers);
+
                         data.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
                         window.leaderboardData = data;
                         
