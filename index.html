@@ -1794,7 +1794,8 @@
                 const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
                 const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                // 🌟 關鍵修復：恢復原先的資料庫路徑名稱 (mandarin-rpg)，找回同學的分數！
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'mandarin-rpg';
                 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
                 
                 const app = initializeApp(firebaseConfig);
@@ -1804,10 +1805,8 @@
                 let currentUser = null;
                 window.getCurrentUserId = () => currentUser ? currentUser.uid : null;
 
-                const originalUpload = window.uploadScoreToFirebase;
+                // 直接覆寫上傳函數，避免重複堆疊
                 window.uploadScoreToFirebase = async function() {
-                    if(typeof originalUpload === 'function') await originalUpload();
-                    
                     if (!currentUser || !window.db || !window.playerStats || !window.playerStats.name) return;
                     try {
                         const lbDocRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
