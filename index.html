@@ -871,37 +871,7 @@
 
         window.uploadScoreToFirebase = async function() {};
         window.getCurrentUserId = () => null;
-        
-        // 預設加入虛擬對手，確保排行榜永遠有目標可挑戰
-        window.leaderboardData = [
-            { uid: 'mock1', name: "Sophia 老師", level: 99, exp: 9999 },
-            { uid: 'mock2', name: "華語大師", level: 50, exp: 4500 },
-            { uid: 'mock3', name: "李小明", level: 12, exp: 1200 },
-            { uid: 'mock4', name: "王大明", level: 8, exp: 500 },
-            { uid: 'mock5', name: "新手冒險家", level: 3, exp: 100 }
-        ];
-
-        // 本地即時更新邏輯 (確保即便離線或權限受限，玩家也能立刻看到自己上榜)
-        window.uploadScoreToFirebase = async function() {
-            if (!window.playerStats || !window.playerStats.name) return;
-            const myScore = {
-                uid: window.getCurrentUserId ? window.getCurrentUserId() : 'local_me',
-                name: window.playerStats.name,
-                level: window.playerStats.level,
-                exp: window.playerStats.exp,
-                timestamp: Date.now()
-            };
-            const myIndex = window.leaderboardData.findIndex(p => p.name === window.playerStats.name);
-            if (myIndex !== -1) window.leaderboardData[myIndex] = myScore;
-            else window.leaderboardData.push(myScore);
-            
-            // 重新排序
-            window.leaderboardData.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
-            
-            if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
-                window.renderLeaderboard();
-            }
-        };
+        window.leaderboardData = [];
 
         // ==========================================
         // 4. 遊戲核心與儲存函數
@@ -1876,10 +1846,9 @@
                         }
                     }, (error) => {
                         console.error("Leaderboard fetch error:", error);
-                        const loadEl = document.getElementById('leaderboard-loading');
-                        if(loadEl) {
-                            loadEl.style.display = 'block';
-                            loadEl.innerHTML = `<span class='text-red-400'>${window.t('permissionError') || '權限錯誤或連線失敗。'}</span>`;
+                        // 即使發生權限或連線錯誤，也要觸發渲染，好讓本地玩家的分數可以顯示
+                        if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
+                            window.renderLeaderboard();
                         }
                     });
                 };
@@ -1911,7 +1880,36 @@
             const listEl = document.getElementById('leaderboard-list');
             const loadEl = document.getElementById('leaderboard-loading');
             
-            if (!window.leaderboardData || window.leaderboardData.length === 0) {
+            // --- 核心防護：智能混合渲染機制 ---
+            // 複製一份當前從雲端抓取到的資料 (若無網路則為空陣列)
+            let displayData = [...(window.leaderboardData || [])];
+            
+            // 強制將「本機當前玩家最新的資料」混入陣列中
+            if (window.playerStats && window.playerStats.name) {
+                const myUid = (typeof window.getCurrentUserId === 'function' && window.getCurrentUserId()) ? window.getCurrentUserId() : 'local_me';
+                const myScore = {
+                    uid: myUid,
+                    name: window.playerStats.name,
+                    level: window.playerStats.level,
+                    exp: window.playerStats.exp
+                };
+                
+                const existingIdx = displayData.findIndex(p => p.name === myScore.name);
+                if (existingIdx !== -1) {
+                    // 如果本地的分數比雲端上的更高，就使用本地分數覆蓋顯示
+                    if (myScore.level > displayData[existingIdx].level || (myScore.level === displayData[existingIdx].level && myScore.exp > displayData[existingIdx].exp)) {
+                        displayData[existingIdx] = myScore;
+                    }
+                } else {
+                    // 雲端還沒有我的資料，直接新增進去
+                    displayData.push(myScore);
+                }
+            }
+
+            // 混合完成後重新大排序
+            displayData.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
+
+            if (displayData.length === 0) {
                 listEl.innerHTML = '';
                 loadEl.style.display = 'block';
                 loadEl.innerText = window.t('emptyLeaderboard');
@@ -1920,12 +1918,14 @@
 
             loadEl.style.display = 'none';
             let html = '';
-            const topPlayers = window.leaderboardData.slice(0, 20);
+            const topPlayers = displayData.slice(0, 20);
             
             topPlayers.forEach((player, idx) => {
                 const rank = idx + 1;
                 const myUid = typeof window.getCurrentUserId === 'function' ? window.getCurrentUserId() : null;
-                const isMe = myUid && player.uid === myUid;
+                
+                // 判斷是否為玩家本人 (若無連線則退回使用名稱比對)
+                const isMe = (myUid && player.uid === myUid) || (!myUid && player.name === window.playerStats.name);
                 
                 let rankVisual = `<span class="font-black text-slate-400">${rank}</span>`;
                 if (rank === 1) rankVisual = `<i class="fa-solid fa-crown text-yellow-400 text-xl drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"></i>`;
