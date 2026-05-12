@@ -195,6 +195,12 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 版權與標示 -->
+        <div class="text-center text-slate-500 text-xs mt-4 mb-2 pb-2 font-bold w-full z-20">
+            Powered by Gemini | Sophia老師的AI練習本<br>
+            Design by Sophia Wong
+        </div>
     </div>
 
     <!-- 主選單畫面 -->
@@ -287,6 +293,12 @@
             <button id="start-game-btn" onclick="window.startSelected()" class="w-full btn-3d px-8 py-5 bg-slate-800 text-slate-500 font-black rounded-2xl text-xl md:text-2xl border-b-[6px] border-slate-900 shadow-2xl cursor-not-allowed transition-all" disabled>
                 <span data-i18n="selectMinOne">請至少選擇一關</span>
             </button>
+        </div>
+        
+        <!-- 版權與標示 -->
+        <div class="mt-6 text-center text-slate-500 text-xs font-bold w-full pb-2 shrink-0">
+            Powered by Gemini | Sophia老師的AI練習本<br>
+            Design by Sophia Wong
         </div>
     </div>
 
@@ -452,7 +464,7 @@
             zhCN: {
                 title: "华语勇者传说", ready: "准备战斗！", menuBtn: "撤退", hero: "勇者",
                 hintWarn: "💡 必须答对每一个单字才能击败魔王喔！", loading: "载入题目中...",
-                showHint: "点击显示提示 (注音/拼音)", victory: "胜利！", continueBtn: "继续前进",
+                showHint: "点击显示提示 (注音/拼音)",胜利: "胜利！", continueBtn: "继续前进",
                 backMenuBtn: "回主选单", selectPrompt: "选择你要复习的关卡（最多可选 4 关）",
                 selectMinOne: "请选择单元", startSingle: "开始挑战", startMixed: "综合挑战",
                 maxHp: "最大生命值:", treasures: "收集到的宝物", noTreasure: "还没有宝物...多打怪吧！",
@@ -640,7 +652,7 @@
                 { question: "今天先在家吃，週末 ______ 出去吃。", answer: "再", zhuyin: "ㄗㄞˋ", pinyin: "zài", options: ["再", "蛋炒飯", "湯", "漢堡"] },
                 { question: "媽媽問：「今天 ______ 你們想吃什麼？」", answer: "晚餐", zhuyin: "ㄨㄢˇ ㄘㄢ", pinyin: "wǎn cān", options: ["晚餐", "出去", "已經", "了"] },
                 { question: "大文不想吃飯，他說：「我想吃 ______。」", answer: "麵", zhuyin: "ㄇㄧㄢˋ", pinyin: "miàn", options: ["麵", "週末", "先", "了"] },
-                { question: "文文喜歡吃米飯，她說：「我想吃 ______。」", answer: "蛋炒飯", zhuyin: "ㄉㄢˋ ㄔㄠˇ ㄈㄢˋ", pinyin: "dàn chǎo fàn", options: ["蛋炒飯", "再", "餓", "快點"] },
+                { question: "文文喜歡吃米飯，她說：「我想吃 ______。」", answer: "蛋炒飯", zhuyin: "ㄉㄢˋ ㄔㄠˇ ㄈㄢˋ", pinyin: "dàn chǎo fàn", options: ["蛋炒饭", "再", "餓", "快點"] },
                 { question: "吃蛋炒飯的時候，有 ______ 可以喝嗎？", answer: "湯", zhuyin: "ㄊㄤ", pinyin: "tāng", options: ["湯", "週末", "出去", "已經"] },
                 { question: "媽媽說：「我已經做了 ______，很好喝喔！」", answer: "玉米湯", zhuyin: "ㄩˋ ㄇㄧˇ ㄊㄤ", pinyin: "yù mǐ tāng", options: ["玉米湯", "再", "餓", "了"] },
                 { question: "太好了，媽媽 ______ 把飯做好了。", answer: "已經", zhuyin: "ㄧˇ ㄐㄧㄥ", pinyin: "yǐ jīng", options: ["已經", "漢堡", "薯條", "湯"] },
@@ -819,6 +831,22 @@
             { id: 't12', levelIdx: 11, icon: 'fa-headset', color: 'text-gray-400', effectType: 'hp', effectVal: 15, name: {zh: '通訊耳機', en: 'Comms Headset'}, desc: {zh: '最大生命值 +{v}', en: 'Max HP +{v}'} }
         ];
 
+        window.vocabDict = {
+            "新": "new", "現在": "now, at the moment", "介紹": "to introduce", "自己": "oneself, one's own", "大家": "everyone", "今年": "this year", "跟": "with", "游泳": "to swim, swimming", "比較": "comparatively, relatively", "看書": "to read, to study", "高興": "happy, glad", "認識": "to know, to recognize", "歡迎": "welcome, to welcome", "華語": "Mandarin", "學": "to learn, to study", "最": "the most",
+            "外公": "maternal grandfather", "以前": "before, previously", "外婆": "maternal grandmother", "做生意": "to do business", "幫": "to help, to assist", "醫生": "doctor", "工作": "to work, job, task", "銀行": "bank", "一樣": "same, like, the same as", "電腦公司": "computer company", "上班": "to go to work", "以後": "in the future",
+            "要": "to want", "附近": "nearby, next to", "超級市場": "supermarket", "東西": "thing(s), stuff", "巧克力": "chocolate", "冰淇淋": "ice cream", "買": "to buy", "牛肉": "beef", "青菜": "green vegetables", "米": "uncooked rice", "可以": "can, may, possible", "糖果": "candy", "魚": "fish",
+            "週末": "weekend", "漢堡": "hamburger", "薯條": "french fries", "出去": "to go out", "先": "first, early", "蛋炒飯": "egg fried rice", "晚餐": "dinner, supper", "再": "then, again", "麵": "noodles", "了": "completed action marker", "湯": "soup", "玉米湯": "corn soup", "已經": "already", "餓": "hungry", "快點": "hurry up, faster",
+            "秋天": "autumn, fall", "樹葉": "leaf, leaves", "變": "to change", "黃": "yellow", "草": "grass", "還是": "still", "綠色": "green", "天氣": "weather", "舒服": "comfortable", "春天": "spring", "不錯": "not bad, pretty good", "顏色": "color", "時候": "time, when", "花": "flower(s)", "院子": "yard", "紅色": "red", "白色": "white", "漂亮": "pretty, beautiful",
+            "農曆": "lunar calendar", "說": "to speak, to say", "新年": "New Year", "華人": "Ethnic Chinese", "下": "next, down, below", "星期": "week", "會": "shall, will", "年糕": "New Year cake", "那天": "that day", "給": "to give, to, for", "拜年": "to visit during Lunar New Year", "臺灣": "Taiwan", "每": "each, every", "紅包": "red envelope", "如果": "if", "放鞭炮": "to set off firecrackers", "貼春聯": "to stick spring festival couplets", "明天": "tomorrow",
+            "該": "should, ought to", "起床": "to get out of bed", "來不及": "too late", "累": "tired", "睡覺": "to sleep", "晚上": "night", "早一點": "a bit earlier", "趕快": "right away, hurry up", "刷牙": "to brush one's teeth", "洗澡": "to take a bath/shower", "昨天": "yesterday", "別": "don't", "忘了": "forgot", "用": "to use", "肥皂": "soap", "洗臉": "to wash one's face", "知道": "to know", "乾淨": "clean",
+            "寵物": "pet", "送給": "to give as a present", "隻": "measure word for animals", "狗": "dog", "帶": "to bring", "散步": "to take a walk", "牠們": "they/them (animals)", "過": "particle for past experience", "養": "to raise", "去年": "last year", "貓": "cat", "上個月": "last month", "不見了": "disappeared", "非常": "very, extremely", "可愛": "cute, lovable", "餵": "to feed", "兔子": "rabbit",
+            "告訴": "to tell", "方向": "direction", "指南針": "compass", "哪裡": "where", "它": "it", "北方": "the north", "南方": "the south", "教室": "classroom", "東方": "the east", "西方": "the west", "校門口": "school entrance", "因為": "because", "所以": "so, therefore", "足球場": "soccer/football field",
+            "暑假": "summer vacation", "看": "to visit, to see", "住在": "to live in/at", "本來": "originally", "退休": "to retire", "一次": "once", "旅行": "to travel, to take a trip", "舅舅": "uncle (maternal)", "阿姨": "aunt (maternal)", "臺北": "Taipei", "臺南": "Tainan", "紐約": "New York", "法國": "France",
+            "動物園": "zoo", "大象": "elephant", "老虎": "tiger", "希望": "to wish", "這一次": "this time", "看到": "to see", "熊貓": "panda", "猴子": "monkey", "不但": "not only...", "還": "also, still", "企鵝": "penguin", "胖胖的": "chubby", "真": "really", "長頸鹿": "giraffe", "脖子": "neck", "長長的": "long",
+            "網路": "internet", "電話": "telephone", "影像": "image", "很久": "a long time", "說話": "to speak, to talk", "看起來": "look, look like", "瘦": "skinny, thin", "長高": "to grow tall", "上課": "to go to class", "有意思": "interesting", "好好": "do a good job of...", "寫": "to write", "信": "letter", "沒問題": "no problem",
+            "方友朋": "Fang Youpeng (Name)", "張莉": "Zhang Li (Name)"
+        };
+
         // ==========================================
         // 3. 全域變數初始化
         // ==========================================
@@ -872,6 +900,7 @@
         window.uploadScoreToFirebase = async function() {};
         window.getCurrentUserId = () => null;
         window.leaderboardData = [];
+        window.leaderboardError = null;
 
         // ==========================================
         // 4. 遊戲核心與儲存函數
@@ -1791,25 +1820,37 @@
         (async function initFirebase() {
             try {
                 const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-                const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
                 const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 
-                // 🌟 關鍵修復：恢復原先的資料庫路徑名稱 (mandarin-rpg)，找回同學的分數！
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'mandarin-rpg';
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+                // 🌟 核心修復 1：直接寫死您的設定，絕對不使用系統的調包預設值
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCZIA5n7zK6hsTmQff_3F8NFaYxV9fiGkc",
+                    authDomain: "mandarin-rpg.firebaseapp.com",
+                    projectId: "mandarin-rpg",
+                    storageBucket: "mandarin-rpg.firebasestorage.app",
+                    messagingSenderId: "937255567859",
+                    appId: "1:937255567859:web:0fece5a8518d9828f01286"
+                };
                 
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
                 window.db = getFirestore(app);
                 
+                // 使用您指定的專案名稱
+                const sharedAppId = 'mandarin-rpg';
+                
+                window.leaderboardError = null;
                 let currentUser = null;
                 window.getCurrentUserId = () => currentUser ? currentUser.uid : null;
 
-                // 直接覆寫上傳函數，避免重複堆疊
+                const originalUpload = window.uploadScoreToFirebase;
                 window.uploadScoreToFirebase = async function() {
+                    if(typeof originalUpload === 'function') await originalUpload();
+                    
                     if (!currentUser || !window.db || !window.playerStats || !window.playerStats.name) return;
                     try {
-                        const lbDocRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
+                        const lbDocRef = doc(window.db, 'artifacts', sharedAppId, 'public', 'data', 'leaderboard', currentUser.uid);
                         await setDoc(lbDocRef, {
                             name: window.playerStats.name,
                             level: window.playerStats.level,
@@ -1821,42 +1862,53 @@
 
                 const setupLeaderboardListener = function() {
                     if (!currentUser || !window.db) return;
-                    const lbRef = collection(window.db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                    onSnapshot(lbRef, (snapshot) => {
-                        let rawData = [];
-                        snapshot.forEach(docSnap => { rawData.push({ uid: docSnap.id, ...docSnap.data() }); });
-                        
-                        let uniquePlayers = {};
-                        rawData.forEach(p => {
-                            if (!uniquePlayers[p.name]) { uniquePlayers[p.name] = p; } 
-                            else {
-                                const existing = uniquePlayers[p.name];
-                                if (p.level > existing.level || (p.level === existing.level && p.exp > existing.exp)) uniquePlayers[p.name] = p;
+                    
+                    try {
+                        const lbRef = collection(window.db, 'artifacts', sharedAppId, 'public', 'data', 'leaderboard');
+                        onSnapshot(lbRef, (snapshot) => {
+                            window.leaderboardError = null; 
+                            let rawData = [];
+                            snapshot.forEach(docSnap => { rawData.push({ uid: docSnap.id, ...docSnap.data() }); });
+                            
+                            let uniquePlayers = {};
+                            rawData.forEach(p => {
+                                if (!uniquePlayers[p.name]) { uniquePlayers[p.name] = p; } 
+                                else {
+                                    const existing = uniquePlayers[p.name];
+                                    if (p.level > existing.level || (p.level === existing.level && p.exp > existing.exp)) uniquePlayers[p.name] = p;
+                                }
+                            });
+                            
+                            let data = Object.values(uniquePlayers);
+                            data.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
+                            window.leaderboardData = data;
+                            
+                            const modal = document.getElementById('leaderboard-modal');
+                            if (modal && !modal.classList.contains('hidden')) {
+                                window.renderLeaderboard();
+                            }
+                        }, (error) => {
+                            console.error("讀取排行榜失敗 (請檢查 Firebase Rules 權限):", error.message);
+                            window.leaderboardError = error.message; 
+                            const modal = document.getElementById('leaderboard-modal');
+                            if (modal && !modal.classList.contains('hidden')) {
+                                window.renderLeaderboard();
                             }
                         });
-                        
-                        let data = Object.values(uniquePlayers);
-
-                        data.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
-                        window.leaderboardData = data;
-                        
-                        if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
-                            window.renderLeaderboard();
-                        }
-                    }, (error) => {
-                        console.error("Leaderboard fetch error:", error);
-                        // 即使發生權限或連線錯誤，也要觸發渲染，好讓本地玩家的分數可以顯示
-                        if (!document.getElementById('leaderboard-modal').classList.contains('hidden')) {
-                            window.renderLeaderboard();
-                        }
-                    });
+                    } catch (e) {
+                        console.warn("監聽排行榜失敗:", e);
+                    }
                 };
 
                 const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
+                    try {
+                        // 🌟 核心修復 2：只使用您的資料庫匿名登入，不要用系統發的 Token！
                         await signInAnonymously(auth);
+                    } catch (e) {
+                        console.warn("Firebase 登入失敗:", e);
+                        window.leaderboardError = "AuthError";
+                        const modal = document.getElementById('leaderboard-modal');
+                        if (modal && !modal.classList.contains('hidden')) window.renderLeaderboard();
                     }
                 };
 
@@ -1879,51 +1931,58 @@
             const listEl = document.getElementById('leaderboard-list');
             const loadEl = document.getElementById('leaderboard-loading');
             
-            // --- 核心防護：智能混合渲染機制 ---
-            // 複製一份當前從雲端抓取到的資料 (若無網路則為空陣列)
             let displayData = [...(window.leaderboardData || [])];
             
-            // 強制將「本機當前玩家最新的資料」混入陣列中
+            // 強制將當前玩家最新進度加入預覽
             if (window.playerStats && window.playerStats.name) {
                 const myUid = (typeof window.getCurrentUserId === 'function' && window.getCurrentUserId()) ? window.getCurrentUserId() : 'local_me';
                 const myScore = {
                     uid: myUid,
                     name: window.playerStats.name,
-                    level: window.playerStats.level,
-                    exp: window.playerStats.exp
+                    level: window.playerStats.level || 1,
+                    exp: window.playerStats.exp || 0
                 };
                 
                 const existingIdx = displayData.findIndex(p => p.name === myScore.name);
                 if (existingIdx !== -1) {
-                    // 如果本地的分數比雲端上的更高，就使用本地分數覆蓋顯示
                     if (myScore.level > displayData[existingIdx].level || (myScore.level === displayData[existingIdx].level && myScore.exp > displayData[existingIdx].exp)) {
                         displayData[existingIdx] = myScore;
                     }
                 } else {
-                    // 雲端還沒有我的資料，直接新增進去
                     displayData.push(myScore);
                 }
             }
 
-            // 混合完成後重新大排序
             displayData.sort((a, b) => { if (b.level !== a.level) return b.level - a.level; return b.exp - a.exp; });
 
-            if (displayData.length === 0) {
-                listEl.innerHTML = '';
-                loadEl.style.display = 'block';
-                loadEl.innerText = window.t('emptyLeaderboard');
+            if (displayData.length === 0 && !window.leaderboardError) {
+                if(listEl) listEl.innerHTML = '';
+                if(loadEl) {
+                    loadEl.style.display = 'block';
+                    loadEl.innerText = window.t('emptyLeaderboard');
+                }
                 return;
             }
 
-            loadEl.style.display = 'none';
+            if(loadEl) loadEl.style.display = 'none';
             let html = '';
+            
+            // 顯示錯誤教學 (包含 Auth 登入錯誤)
+            if (window.leaderboardError) {
+                 html += `<tr><td colspan="4" class="p-4 text-center">
+                    <div class="bg-red-900/80 border border-red-500 rounded-lg p-3 text-red-200 text-xs text-left">
+                        <b class="text-base text-red-400">⚠️ Firebase 連線異常</b><br>
+                        如果您看到此訊息，請至 Firebase 控制台的 <b>Authentication (驗證)</b> 內，<br>
+                        點選 <b>Sign-in method (登入方式)</b>，確認 <b>「匿名 (Anonymous)」</b> 已經啟用！
+                    </div>
+                 </td></tr>`;
+            }
+
             const topPlayers = displayData.slice(0, 20);
             
             topPlayers.forEach((player, idx) => {
                 const rank = idx + 1;
                 const myUid = typeof window.getCurrentUserId === 'function' ? window.getCurrentUserId() : null;
-                
-                // 判斷是否為玩家本人 (若無連線則退回使用名稱比對)
                 const isMe = (myUid && player.uid === myUid) || (!myUid && player.name === window.playerStats.name);
                 
                 let rankVisual = `<span class="font-black text-slate-400">${rank}</span>`;
@@ -1944,7 +2003,7 @@
                 `;
             });
 
-            listEl.innerHTML = html;
+            if(listEl) listEl.innerHTML = html;
         };
     </script>
 </body>
